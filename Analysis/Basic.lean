@@ -620,6 +620,125 @@ example (a b : ℝ) : |a * b| = |a| * |b| := by
                _ = |a| * |b| := h4.symm
          exact h6
 
+-- 定理 1.6：對於任意實數 a 和 M ≥ 0，有 |a| ≤ M 若且唯若 -M ≤ a ≤ M
+-- 這個定理說明：絕對值不等式 |a| ≤ M 等價於 a 在區間 [-M, M] 內
+theorem Theorem_1_6 (a M : ℝ) (hM : M ≥ 0): |a| ≤ M ↔ -M ≤ a ∧ a ≤ M := by
+   constructor  -- 分別處理雙向等價的兩個方向
+   intro h  -- 方向 1：假設 |a| ≤ M
+   have h_a : a ≤ 0 ∨ 0 ≤ a := le_total a 0  -- 對 a 分情況
+   cases h_a with
+      | inl ha_neg =>  -- 情況 1.1：a ≤ 0
+         have h1 : |a| = -a := by rw [abs_of_nonpos ha_neg]  -- 因為 a ≤ 0，所以 |a| = -a
+         have h2 : -a ≤ M := by  -- 從 |a| ≤ M 得到 -a ≤ M
+            calc
+               -a
+               _ = |a| := h1.symm
+               _ ≤ M := h
+         have h3 : (-1 : ℝ) ≤ 0 := by norm_num  -- 證明 -1 ≤ 0
+         have h4 : M * (-1) ≤ (-a) * (-1) := mul_le_mul_of_nonpos_right h2 h3  -- 使用負數乘法保序
+         have h5 : -M = M * (-1) := by rw [mul_neg_one]  -- M * (-1) = -M
+         have h6 : (-a) * (-1) = a := by  -- 證明 (-a) * (-1) = a
+            calc
+               (-a) * (-1)
+               _ = (-1) * (-a) := by rw [mul_comm]
+               _ = -(-a) := by rw [neg_one_mul]
+               _ = a := by rw [neg_neg]
+         have h7 : -M ≤ a := by  -- 組合得到 -M ≤ a
+            calc
+               -M
+               _ = M * (-1) := h5
+               _ ≤ (-a) * (-1) := h4
+               _ = a := h6
+         have h8 : a ≤ M := by  -- 因為 a ≤ 0 且 M ≥ 0
+            calc
+               a
+               _ ≤ 0 := ha_neg
+               _ ≤ M := hM
+         exact ⟨h7, h8⟩  -- 組合得到 -M ≤ a ∧ a ≤ M
+      | inr ha_pos =>  -- 情況 1.2：a ≥ 0
+         have h1 : |a| = a := by rw [abs_of_nonneg ha_pos]  -- 因為 a ≥ 0，所以 |a| = a
+         have h2 : a ≤ M := by  -- 從 |a| ≤ M 得到 a ≤ M
+            calc
+               a
+               _ = |a| := h1.symm
+               _ ≤ M := h
+         have h3 : -M ≤ a := by  -- 因為 a ≥ 0 且 M ≥ 0
+            calc
+               -M
+               _ ≤ 0 := neg_nonpos.mpr hM  -- 因為 M ≥ 0，所以 -M ≤ 0
+               _ ≤ a := ha_pos  -- 因為 a ≥ 0，所以 0 ≤ a
+         have h4 : a ≤ M := by  -- 從 |a| ≤ M 得到 a ≤ M
+            calc
+               a
+               _ = |a| := h1.symm
+               _ ≤ M := h
+         exact ⟨h3, h4⟩  -- 組合得到 -M ≤ a ∧ a ≤ M
+   intro h  -- 方向 2：假設 -M ≤ a ∧ a ≤ M
+   rcases h with ⟨h1, h2⟩  -- 分解為 h1 : -M ≤ a 和 h2 : a ≤ M
+   have h_a : a ≤ 0 ∨ 0 ≤ a := le_total a 0  -- 對 a 分情況
+   cases h_a with
+      | inl ha_neg =>  -- 情況 2.1：a ≤ 0
+         have h3 : |a| = -a := by rw [abs_of_nonpos ha_neg]  -- 因為 a ≤ 0，所以 |a| = -a
+         have h4 : |a| ≤ M := by  -- 證明 |a| ≤ M
+            have h4a : -a ≤ M := by  -- 從 -M ≤ a 得到 -a ≤ M
+               have h4a1 : (-1 : ℝ) ≤ 0 := by norm_num  -- 證明 -1 ≤ 0
+               calc
+                  -a
+                  _ = a * (-1) := by rw [mul_neg_one]  -- -a = a * (-1)
+                  _ ≤ -M * (-1) := mul_le_mul_of_nonpos_right h1 h4a1  -- 使用負數乘法保序
+                  _ = -(-M) := by rw [mul_neg_one]  -- -M * (-1) = -(-M)
+                  _ = M := by rw [neg_neg]  -- -(-M) = M
+            calc
+               |a|
+               _ = -a := h3
+               _ ≤ M := h4a
+         exact h4
+      | inr ha_pos =>  -- 情況 2.2：a ≥ 0
+         have h1 : |a| = a := by rw [abs_of_nonneg ha_pos]  -- 因為 a ≥ 0，所以 |a| = a
+         have h2 : |a| ≤ M := by  -- 從 a ≤ M 得到 |a| ≤ M
+            calc
+               |a|
+               _ = a := h1
+               _ ≤ M := h2
+         exact h2
+
+-- 定理 1.7(1)：對於任意實數 a，有 |a| ≥ 0 且 |a| = 0 若且唯若 a = 0
+-- 這個定理說明：絕對值非負，且絕對值為零當且僅當數本身為零
+theorem Theorem_1_7_1 (a : ℝ) : |a| ≥ 0 ∧ |a| = 0 ↔ a = 0 := by
+   constructor  -- 分別處理雙向等價的兩個方向
+   intro h  -- 方向 1：假設 |a| ≥ 0 ∧ |a| = 0
+   have h1 : |a| ≥ 0 := h.1  -- 提取 |a| ≥ 0
+   have h2 : |a| = 0 := h.2  -- 提取 |a| = 0
+   by_contra h_not  -- 假設 a ≠ 0（反證法）
+   have h3 : a < 0 ∨ 0 < a := ne_iff_lt_or_gt.mp h_not  -- 從 a ≠ 0 得到 a < 0 或 a > 0
+   cases h3 with
+   | inl ha_neg =>  -- 情況 1：a < 0
+      have h4 : |a| = -a := by rw [abs_of_neg ha_neg]  -- 因為 a < 0，所以 |a| = -a
+      have h5 : -a > 0 := by  -- 證明 -a > 0
+         have h5a : (-1 : ℝ) < 0 := by norm_num  -- 證明 -1 < 0
+         calc
+            -a
+            _ = a * (-1) := by rw [mul_neg_one]  -- -a = a * (-1)
+            _ > 0 * (-1) := mul_lt_mul_of_neg_right ha_neg h5a  -- 使用負數乘法保序（嚴格）
+            _ = 0 := by rw [zero_mul]  -- 0 * (-1) = 0
+      have h6 : |a| ≠ 0 := by  -- 證明 |a| ≠ 0
+         rw [h4]  -- 將 |a| 替換為 -a
+         exact ne_of_gt h5  -- 從 -a > 0 得到 -a ≠ 0
+      exact h6 h2  -- 與 h2 : |a| = 0 矛盾
+   | inr ha_pos =>  -- 情況 2：0 < a
+      have h4 : |a| = a := by rw [abs_of_pos ha_pos]  -- 因為 0 < a，所以 |a| = a
+      have h5 : |a| ≠ 0 := by  -- 證明 |a| ≠ 0
+         rw [h4]  -- 將 |a| 替換為 a
+         exact ne_of_gt ha_pos  -- 從 a > 0 得到 a ≠ 0
+      exact h5 h2  -- 與 h2 : |a| = 0 矛盾
+   intro h  -- 方向 2：假設 a = 0
+   have h1 : |a| = 0 := by  -- 證明 |a| = 0
+      calc
+         |a|
+         _ = |0| := by rw [h]  -- 將 a 替換為 0
+         _ = 0 := abs_zero  -- |0| = 0
+   have h2 : |a| ≥ 0 := abs_nonneg a  -- |a| ≥ 0（絕對值非負）
+   exact ⟨h2, h1⟩  -- 組合得到 |a| ≥ 0 ∧ |a| = 0
 -- 絕對值的三角不等式
 -- 語法：`|a|` 是絕對值的記號，`≤` 是小於等於
 -- 三角不等式：|a + b| ≤ |a| + |b|
