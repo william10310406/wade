@@ -2370,6 +2370,400 @@ theorem Remark_1_12 (E : Set ℝ) (M : ℝ) (hM : is_upper_bound M E) :
 
 ---
 
+## 備註 1.13：上確界的唯一性
+
+### 問題陳述
+
+**備註 1.13**：如果一個集合有上確界，則它只有一個上確界。
+
+這個備註說明上確界是唯一的，這與上界有無窮多個形成對比。
+
+### 證明策略
+
+要證明唯一性，需要證明：如果 \(s_1\) 和 \(s_2\) 都是 \(E\) 的上確界，則 \(s_1 = s_2\)。
+
+證明思路：
+1. 因為 \(s_1\) 是上確界，\(s_2\) 是上界，所以 \(s_1 \leq s_2\)
+2. 因為 \(s_2\) 是上確界，\(s_1\) 是上界，所以 \(s_2 \leq s_1\)
+3. 由 \(s_1 \leq s_2\) 和 \(s_2 \leq s_1\) 得到 \(s_1 = s_2\)
+
+### Lean 程式碼
+
+```lean
+theorem Remark_1_13 (E : Set ℝ) (s1 s2 : ℝ) (hs1 : is_supremum s1 E) (hs2 : is_supremum s2 E) :
+   s1 = s2 := by
+   have h1 : s1 ≤ s2 := hs1.2 s2 hs2.1  -- s1 是上確界，s2 是上界，所以 s1 ≤ s2
+   have h2 : s2 ≤ s1 := hs2.2 s1 hs1.1  -- s2 是上確界，s1 是上界，所以 s2 ≤ s1
+   have h4 : s1 = s2 := le_antisymm h1 h2  -- 從 s1 ≤ s2 和 s2 ≤ s1 得到 s1 = s2
+   exact h4  -- 完成證明
+```
+
+### 詳細證明步驟
+
+1. **應用上確界的性質**：
+   - `hs1.2` 是 `is_supremum s1 E` 的第二個部分：對所有上界 \(M\)，有 \(s_1 \leq M\)
+   - `hs2.1` 是 `is_supremum s2 E` 的第一個部分：\(s_2\) 是上界
+   - 所以 `hs1.2 s2 hs2.1` 表示 \(s_1 \leq s_2\)
+
+2. **對稱地得到另一個不等式**：
+   - 同樣地，因為 \(s_2\) 是上確界，\(s_1\) 是上界，所以 \(s_2 \leq s_1\)
+
+3. **使用反對稱性**：
+   - `le_antisymm` 表示：如果 \(a \leq b\) 且 \(b \leq a\)，則 \(a = b\)
+   - 從 \(s_1 \leq s_2\) 和 \(s_2 \leq s_1\) 得到 \(s_1 = s_2\)
+
+### 使用的定義和定理
+
+1. **上確界定義**：
+   - `is_supremum s E` 包含兩個部分：
+     - `.1`：\(s\) 是 \(E\) 的上界
+     - `.2`：對所有上界 \(M\)，有 \(s \leq M\)
+
+2. **反對稱性定理**：
+   - `le_antisymm`：\(\forall a b : \mathbb{R}, a \leq b \to b \leq a \to a = b\)
+
+### 學習重點
+
+1. **唯一性證明的標準方法**：
+   - 證明兩個對象相等，通常先證明 \(a \leq b\)，再證明 \(b \leq a\)，最後使用反對稱性
+
+2. **上確界與上界的區別**：
+   - 上界有無窮多個，但上確界是唯一的
+   - 這是因為上確界是所有上界中最小的
+
+3. **定義的結構化使用**：
+   - `is_supremum` 的兩個部分（`.1` 和 `.2`）在證明中都有重要作用
+
+### 相關練習
+
+- 證明：如果一個集合有下確界，則它只有一個下確界
+- 思考：為什麼上確界是唯一的，而上界有無窮多個？
+
+---
+
+## 定理 1.14：上確界的逼近性質
+
+### 問題陳述
+
+**定理 1.14**：如果集合 \(E\) 有有限的上確界 \(s = \sup E\)，且 \(\varepsilon > 0\) 是任意正數，則存在點 \(a \in E\)，使得
+\[
+\sup E - \varepsilon < a \leq \sup E
+\]
+
+這個定理說明：上確界可以被集合中的點任意接近（從下方）。
+
+### 證明策略
+
+使用反證法：
+1. 假設不存在這樣的 \(a \in E\)
+2. 那麼對所有 \(a \in E\)，有 \(a \leq s - \varepsilon\)
+3. 所以 \(s - \varepsilon\) 是上界
+4. 因為 \(s\) 是上確界，所以 \(s \leq s - \varepsilon\)
+5. 這意味著 \(\varepsilon \leq 0\)，與 \(\varepsilon > 0\) 矛盾
+
+### Lean 程式碼
+
+```lean
+theorem Theorem_1_14 (E : Set ℝ) (s : ℝ) (hs : is_supremum s E) (ε : ℝ) (hε : ε > 0) :
+   ∃ a ∈ E, s - ε < a ∧ a ≤ s := by
+   by_contra h_not  -- 假設不存在這樣的 a（反證法）
+   have h1 : ∀ a ∈ E, a ≤ s - ε := by  -- 證明對所有 a ∈ E，有 a ≤ s - ε
+      intro a ha  -- 引入 a ∈ E
+      have h2 : a ≤ s := hs.1 a ha  -- s 是上界，所以 a ≤ s
+      by_cases h3 : s - ε < a  -- 分情況：s - ε < a 或 s - ε ≥ a
+      · have h4 : s - ε < a ∧ a ≤ s := ⟨ h3, h2 ⟩  -- 如果 s - ε < a，則滿足條件
+        exact absurd ⟨ a, ha, h4 ⟩ h_not  -- 與 h_not 矛盾（存在這樣的 a）
+      · push_neg at h3  -- s - ε ≥ a，即 a ≤ s - ε
+        exact h3  -- 這就是我們要的
+   have h5 : is_upper_bound (s - ε) E := h1  -- s - ε 是上界
+   have h6 : s ≤ s - ε := hs.2 (s - ε) h5  -- s 是上確界，所以 s ≤ s - ε
+   have h7 : ε ≤ 0 := by linarith  -- 從 s ≤ s - ε 得到 ε ≤ 0
+   exact not_le_of_gt hε h7  -- ε > 0 與 ε ≤ 0 矛盾
+```
+
+### 詳細證明步驟
+
+#### 第一步：反證法假設
+
+1. **假設不存在**：
+   - `by_contra h_not`：假設不存在 \(a \in E\) 使得 \(s - \varepsilon < a \leq s\)
+   - `h_not : ¬(∃ a ∈ E, s - ε < a ∧ a ≤ s)`
+
+#### 第二步：證明對所有 a ∈ E，有 a ≤ s - ε
+
+2. **引入變數**：
+   - `intro a ha`：引入 \(a \in E\)
+
+3. **應用上界定義**：
+   - `have h2 : a ≤ s := hs.1 a ha`：因為 \(s\) 是上界，所以 \(a \leq s\)
+
+4. **分情況討論**：
+   - `by_cases h3 : s - ε < a`：分兩種情況
+     - **情況 1**（`s - ε < a`）：
+       - 構造 `⟨h3, h2⟩` 得到 \(s - \varepsilon < a \land a \leq s\)
+       - 構造 `⟨a, ha, h4⟩` 得到存在性證明
+       - `exact absurd ⟨a, ha, h4⟩ h_not`：與 `h_not` 矛盾
+     - **情況 2**（`s - ε ≥ a`）：
+       - `push_neg at h3`：將 `¬(s - ε < a)` 轉換為 `a ≤ s - ε`
+       - `exact h3`：這就是我們要的結論
+
+#### 第三步：得到矛盾
+
+5. **證明 s - ε 是上界**：
+   - `have h5 : is_upper_bound (s - ε) E := h1`：從 `h1` 得到 \(s - \varepsilon\) 是上界
+
+6. **應用上確界的性質**：
+   - `have h6 : s ≤ s - ε := hs.2 (s - ε) h5`：因為 \(s\) 是上確界，\(s - \varepsilon\) 是上界，所以 \(s \leq s - \varepsilon\)
+
+7. **推導矛盾**：
+   - `have h7 : ε ≤ 0 := by linarith`：從 \(s \leq s - \varepsilon\) 得到 \(\varepsilon \leq 0\)
+   - `exact not_le_of_gt hε h7`：\(\varepsilon > 0\) 與 \(\varepsilon \leq 0\) 矛盾
+
+### 使用的定義和定理
+
+1. **上確界定義**：
+   - `is_supremum s E` 包含兩個部分：
+     - `.1`：\(s\) 是 \(E\) 的上界
+     - `.2`：對所有上界 \(M\)，有 \(s \leq M\)
+
+2. **邏輯操作**：
+   - `by_contra`：反證法
+   - `by_cases`：分情況討論
+   - `push_neg`：應用 De Morgan 定律轉換否定
+   - `absurd`：從矛盾得到任意結論
+
+3. **不等式定理**：
+   - `not_le_of_gt`：從 \(a > b\) 得到 \(\neg(a \leq b)\)
+   - `linarith`：線性算術自動證明
+
+### 學習重點
+
+1. **反證法的應用**：
+   - 證明存在性時，假設不存在，然後推導矛盾
+   - 這是證明存在性的常用方法
+
+2. **分情況討論的技巧**：
+   - 使用 `by_cases` 分兩種情況
+   - 一種情況得到矛盾，另一種情況得到結論
+
+3. **上確界的逼近性質**：
+   - 這個定理說明上確界可以被集合中的點任意接近
+   - 這是上確界的重要性質，在分析學中經常使用
+
+4. **構造存在性證明**：
+   - 在 Lean 中，存在性證明用 `⟨a, ha, P⟩` 構造
+   - 需要提供元素、元素屬於集合的證明，以及性質的證明
+
+### 相關練習
+
+- 證明：如果 \(E\) 有有限的下確界，且 \(\varepsilon > 0\)，則存在 \(a \in E\) 使得 \(\inf E \leq a < \inf E + \varepsilon\)
+- 思考：為什麼這個定理在分析學中如此重要？（它與極限和連續性密切相關）
+
+---
+
+## 定理 1.15：整數集合的上確界必為整數
+
+### 問題陳述
+
+**定理 1.15**：如果 \(E \subseteq \mathbb{Z}\) 有上確界，則 \(\sup E \in E\)。特別地，如果一個只包含整數的集合有上確界，那麼這個上確界必須是整數。
+
+**說明**：這個定理說明了一個重要的性質：對於整數集合，如果它有上確界，那麼這個上確界必須是集合中的一個元素。這與一般實數集合不同，一般實數集合的上確界可能不在集合中（例如開區間 \((0, 1)\) 的上確界是 1，但 1 不在開區間中）。
+
+### 證明策略
+
+使用反證法，證明思路如下：
+
+1. **假設結論不成立**：假設 \(\sup E \notin E\)（即上確界不在集合中）
+2. **找到第一個整數**：使用定理 1.14，找到一個整數 \(n \in E\)，使得 \(s - 1/2 < n \leq s\)
+3. **證明 \(n < s\)**：如果 \(n = s\)，則 \(s\) 在 \(E\) 中，與假設矛盾
+4. **找到第二個整數**：再次使用定理 1.14，找到另一個整數 \(m \in E\)，使得 \(n < m \leq s\)
+5. **推導矛盾**：
+   - 證明 \(0 < m - n < 1\)
+   - 但整數的差 \(m - n\) 也是整數
+   - 不存在整數 \(k\) 使得 \(0 < k < 1\)（整數的三歧性）
+   - 因此得到矛盾
+
+### 完整證明
+
+```lean
+theorem Theorem_1_15 (E : Set ℤ) (s : ℝ) (hs : is_supremum s (E.image (Int.cast : ℤ → ℝ))) :
+   (s : ℝ) ∈ (E.image (Int.cast : ℤ → ℝ)) := by
+   by_contra h_not  -- 反證法：假設 s 不在 E 的像中
+   have h1 : ∃ a ∈ E.image (Int.cast : ℤ → ℝ), s - (1/2 : ℝ) < a ∧ a ≤ s :=
+      Theorem_1_14 (E.image (Int.cast : ℤ → ℝ)) s hs (1/2 : ℝ) (by norm_num)  -- 使用定理 1.14，取 ε = 1/2
+   obtain ⟨a, ha_in, h1_left, h1_right⟩ := h1  -- 分解存在性證明，得到 a ∈ E 的像，且 s - 1/2 < a ≤ s
+   obtain ⟨n, hn_in, hn_eq⟩ := ha_in  -- 因為 a 在 E 的像中，存在整數 n ∈ E 使得 a = ↑n
+   have h2 : a = (n : ℝ) := hn_eq.symm  -- a 等於整數 n 的實數轉換
+   have h3 : a < s := by  -- 證明 a < s（關鍵步驟）
+      by_contra h_eq  -- 假設 a ≥ s
+      push_neg at h_eq  -- 轉換為 a ≥ s
+      have h4 : a = s := le_antisymm h1_right h_eq  -- 從 a ≤ s 和 a ≥ s 得到 a = s
+      rw [← h2, h4] at hn_eq  -- 將 a 替換為 s，得到 s = ↑n
+      have h5 : s = (n : ℝ) := h4.symm.trans h2  -- s = a = ↑n
+      have h6 : (n : ℝ) ∈ E.image (Int.cast : ℤ → ℝ) := ⟨ n, hn_in, rfl ⟩  -- n 在 E 的像中
+      rw [← h5] at h6  -- 將 ↑n 替換為 s
+      exact h_not h6  -- 與假設矛盾（s 在 E 的像中）
+   have h7 : s - a > 0 := sub_pos.mpr h3  -- 從 a < s 得到 s - a > 0
+   have h8 : ∃ b ∈ E.image (Int.cast : ℤ → ℝ), a < b ∧ b ≤ s := by  -- 存在另一個整數 b，使得 a < b ≤ s
+      have h9 : ∃ b ∈ E.image (Int.cast : ℤ → ℝ), s - (s - a) < b ∧ b ≤ s :=
+         Theorem_1_14 (E.image (Int.cast : ℤ → ℝ)) s hs (s - a) h7  -- 使用定理 1.14，取 ε = s - a
+      obtain ⟨ b, hb_in, hb_left, hb_right⟩ := h9  -- 分解存在性證明
+      have h10 : a = s - (s - a) := by ring  -- 代數恆等式：a = s - (s - a)
+      have h11 : a < b := by rw [h10]; exact hb_left  -- 從 s - (s - a) < b 得到 a < b
+      use b, hb_in, h11, hb_right  -- 構造存在性證明
+   obtain ⟨ b, hb_in, hb_left, hb_right⟩ := h8  -- 分解得到整數 b，滿足 a < b ≤ s
+   obtain ⟨ m, hm_in, hm_eq⟩ := hb_in  -- 因為 b 在 E 的像中，存在整數 m ∈ E 使得 b = ↑m
+   have h12 : b = (m : ℝ) := hm_eq.symm  -- b 等於整數 m 的實數轉換
+   have h13 : 0 < b - a := sub_pos.mpr hb_left  -- 從 a < b 得到 b - a > 0
+   have h14 : b - a < 1 := by  -- 證明 b - a < 1（關鍵不等式）
+      have h15 : s - (1/2 : ℝ) < a := h1_left  -- 從 h1 得到 s - 1/2 < a
+      calc
+         b - a
+         _ ≤ s - a := sub_le_sub_right hb_right a  -- 從 b ≤ s 得到 b - a ≤ s - a
+         _ < 1/2 := by linarith  -- 從 s - 1/2 < a 得到 s - a < 1/2
+         _ < 1 := by norm_num  -- 1/2 < 1
+   have h16 : b - a = (m - n : ℝ) := by rw [h12, h2]  -- b - a = ↑m - ↑n = ↑(m - n)
+   have h17 : (0 : ℝ) < (m - n : ℝ) ∧ (m - n : ℝ) < 1 := by  -- 0 < ↑(m - n) < 1
+      constructor
+      rw [← h16]; exact h13  -- 從 b - a > 0 得到 ↑(m - n) > 0
+      rw [← h16]; exact h14  -- 從 b - a < 1 得到 ↑(m - n) < 1
+   have h18 : ¬ (∃ k : ℤ, (0 : ℝ) < (k : ℝ) ∧ (k : ℝ) < 1) := by  -- 不存在整數 k 使得 0 < ↑k < 1
+      intro h  -- 假設存在這樣的 k
+      obtain ⟨ k, hk_left, hk_right⟩ := h  -- 分解存在性證明
+      have h19 : (k : ℤ) ≤ 0 ∨ (k : ℤ) ≥ 1 := by  -- 整數的三歧性：k ≤ 0 或 k ≥ 1
+         by_cases h_le : (k : ℤ) ≤ 0  -- 分情況：k ≤ 0 或 k > 0
+         left; exact h_le  -- 情況 1：k ≤ 0
+         right  -- 情況 2：k > 0
+         push_neg at h_le  -- 轉換為 k > 0
+         exact Int.add_one_le_of_lt h_le  -- 從 k > 0 得到 k ≥ 1（整數性質）
+      cases h19 with
+      | inl h_le =>  -- 情況 1：k ≤ 0
+         have h20 : (k : ℝ) ≤ 0:= by
+            rw [← Int.cast_zero]
+            exact Int.cast_le.mpr h_le  -- 整數轉換保序：k ≤ 0 則 ↑k ≤ 0
+         linarith  -- 與 hk_left : ↑k > 0 矛盾
+      | inr h_ge =>  -- 情況 2：k ≥ 1
+         have h21 : (k : ℝ) ≥ 1 := by
+            rw [← Int.cast_one]
+            exact Int.cast_le.mpr h_ge  -- 整數轉換保序：k ≥ 1 則 ↑k ≥ 1
+         linarith  -- 與 hk_right : ↑k < 1 矛盾
+   have h22 : (0 : ℝ) < ↑(m - n) := by  -- 證明 0 < ↑(m - n)
+      calc
+         (0 : ℝ)
+         _ < ↑m - ↑n := h17.1  -- 從 h17 得到 0 < ↑m - ↑n
+         _ = ↑(m - n) := (Int.cast_sub m n).symm  -- 使用整數轉換的減法性質
+   have h23 : ↑(m - n) < (1 : ℝ) := by  -- 證明 ↑(m - n) < 1
+      calc
+         ↑(m - n)
+         _ = ↑m - ↑n := Int.cast_sub m n  -- 使用整數轉換的減法性質
+         _ < (1 : ℝ) := h17.2  -- 從 h17 得到 ↑m - ↑n < 1
+   exact h18 ⟨m - n, h22, h23⟩  -- 與 h18 矛盾（存在整數 m - n 使得 0 < ↑(m - n) < 1）
+```
+
+### 詳細證明步驟
+
+#### 第一步：反證法假設
+
+1. **假設結論不成立**：
+   - `by_contra h_not`：假設上確界 \(s\) 不在 \(E\) 的像中
+   - 目標是推導出矛盾
+
+#### 第二步：找到第一個整數
+
+2. **應用定理 1.14**：
+   - 使用定理 1.14，取 \(\varepsilon = 1/2\)
+   - 得到存在 \(a \in E\) 的像，使得 \(s - 1/2 < a \leq s\)
+   - 因為 \(a\) 在 \(E\) 的像中，存在整數 \(n \in E\) 使得 \(a = n\)（作為實數）
+
+3. **證明 \(n < s\)**：
+   - 如果 \(n = s\)，則 \(s\) 在 \(E\) 中，與假設矛盾
+   - 因此必須有 \(n < s\)
+
+#### 第三步：找到第二個整數
+
+4. **再次應用定理 1.14**：
+   - 因為 \(s - n > 0\)，使用定理 1.14，取 \(\varepsilon = s - n\)
+   - 得到存在另一個點 \(b \in E\) 的像，使得 \(s - (s - n) < b \leq s\)
+   - 簡化：\(n < b \leq s\)
+   - 因為 \(b\) 在 \(E\) 的像中，存在整數 \(m \in E\) 使得 \(b = m\)（作為實數）
+
+#### 第四步：推導關鍵不等式
+
+5. **證明 \(0 < m - n < 1\)**：
+   - 從 \(n < m \leq s\) 得到 \(0 < m - n\)
+   - 從 \(s - 1/2 < n\) 和 \(m \leq s\) 得到：
+     \[
+     m - n \leq s - n < s - (s - 1/2) = 1/2 < 1
+     \]
+   - 因此 \(0 < m - n < 1\)
+
+#### 第五步：推導矛盾
+
+6. **整數的三歧性**：
+   - 對於任意整數 \(k\)，要麼 \(k \leq 0\)，要麼 \(k \geq 1\)
+   - 不存在整數 \(k\) 使得 \(0 < k < 1\)
+
+7. **應用到 \(m - n\)**：
+   - \(m - n\) 是整數（因為 \(m\) 和 \(n\) 都是整數）
+   - 但我們證明了 \(0 < m - n < 1\)
+   - 這與整數的三歧性矛盾
+
+8. **完成證明**：
+   - 假設導致矛盾，因此原結論成立
+   - 即：如果整數集合有上確界，則上確界必須在集合中
+
+### 使用的定義和定理
+
+1. **定理 1.14**：
+   - 如果集合有上確界 \(s\)，且 \(\varepsilon > 0\)，則存在 \(a \in E\) 使得 \(s - \varepsilon < a \leq s\)
+   - 這是上確界的逼近性質
+
+2. **整數的三歧性**：
+   - 對於任意整數 \(k\)，有 \(k \leq 0\) 或 \(k \geq 1\)
+   - 不存在整數 \(k\) 使得 \(0 < k < 1\)
+
+3. **整數轉換的性質**：
+   - `Int.cast_sub`：\(\uparrow(m - n) = \uparrow m - \uparrow n\)
+   - `Int.cast_le`：整數轉換保序
+   - `Int.add_one_le_of_lt`：如果整數 \(k > 0\)，則 \(k \geq 1\)
+
+4. **反證法**：
+   - `by_contra`：假設結論不成立，推導矛盾
+
+### 學習重點
+
+1. **反證法的應用**：
+   - 這個證明展示了如何使用反證法來證明存在性
+   - 假設結論不成立，然後推導出邏輯矛盾
+
+2. **整數的特殊性質**：
+   - 整數是離散的，任意兩個不同整數之間的距離至少為 1
+   - 這與實數的稠密性形成對比
+
+3. **上確界的逼近性質**：
+   - 定理 1.14 允許我們找到任意接近上確界的點
+   - 對於整數集合，這導致上確界必須是集合中的元素
+
+4. **類型轉換的使用**：
+   - 在 Lean 中，需要將整數轉換為實數來使用實數的性質
+   - `Int.cast` 用於整數到實數的轉換
+   - 需要注意轉換後的性質（如保序性）
+
+5. **代數恆等式的使用**：
+   - \(a = s - (s - a)\) 是一個有用的代數恆等式
+   - 在證明中經常使用這類恆等式來重組表達式
+
+### 相關練習
+
+- 證明：如果 \(E \subseteq \mathbb{Z}\) 有下確界，則 \(\inf E \in E\)
+- 思考：為什麼實數集合的上確界可能不在集合中，而整數集合的上確界必須在集合中？
+- 證明：如果 \(E \subseteq \mathbb{N}\)（自然數集合）有上確界，則 \(\sup E \in E\)
+- 應用：使用這個定理證明，如果整數序列有上確界，則上確界是序列中的某項
+
+---
+
 ## 後續練習題
+
+（此處將添加更多第一章的練習題）
 
 （此處將添加更多第一章的練習題）

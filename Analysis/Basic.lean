@@ -1173,4 +1173,109 @@ theorem Remark_1_12 (E : Set ℝ) (M : ℝ) (hM : is_upper_bound M E) :
    intro N hN a ha  -- 引入 N、N ≥ M、a 和 a ∈ E
    have h1 : a ≤ M := hM a ha  -- 因為 M 是上界，所以 a ≤ M
    exact le_trans h1 hN  -- 從 a ≤ M 和 M ≤ N 得到 a ≤ N（傳遞性）
+
+-- Remark 1.13. If a set has a supremum, then it has only one supremum.
+theorem Remark_1_13 (E : Set ℝ) (s1 s2 : ℝ) (hs1 : is_supremum s1 E) (hs2 : is_supremum s2 E) :
+   s1 = s2 := by
+   have h1 : s1 ≤ s2 := hs1.2 s2 hs2.1  -- s1 是上確界，s2 是上界，所以 s1 ≤ s2
+   have h2 : s2 ≤ s1 := hs2.2 s1 hs1.1  -- s2 是上確界，s1 是上界，所以 s2 ≤ s1
+   have h4 : s1 = s2 := le_antisymm h1 h2  -- 從 s1 ≤ s2 和 s2 ≤ s1 得到 s1 = s2
+   exact h4  -- 完成證明
+
+-- Theorem 1.14. If E has a finite supremum and ε > 0 is any positive number, then there is a point a ∈ E such that
+-- sup E - ε < a ≤ sup E.
+theorem Theorem_1_14 (E : Set ℝ) (s : ℝ) (hs : is_supremum s E) (ε : ℝ) (hε : ε > 0) :
+   ∃ a ∈ E, s - ε < a ∧ a ≤ s := by
+   by_contra h_not  -- 假設不存在這樣的 a（反證法）
+   have h1 : ∀ a ∈ E, a ≤ s - ε := by  -- 證明對所有 a ∈ E，有 a ≤ s - ε
+      intro a ha  -- 引入 a ∈ E
+      have h2 : a ≤ s := hs.1 a ha  -- s 是上界，所以 a ≤ s
+      by_cases h3 : s - ε < a  -- 分情況：s - ε < a 或 s - ε ≥ a
+      · have h4 : s - ε < a ∧ a ≤ s := ⟨ h3, h2 ⟩  -- 如果 s - ε < a，則滿足條件
+        exact absurd ⟨ a, ha, h4 ⟩ h_not  -- 與 h_not 矛盾（存在這樣的 a）
+      · push_neg at h3  -- s - ε ≥ a，即 a ≤ s - ε
+        exact h3  -- 這就是我們要的
+   have h5 : is_upper_bound (s - ε) E := h1  -- s - ε 是上界
+   have h6 : s ≤ s - ε := hs.2 (s - ε) h5  -- s 是上確界，所以 s ≤ s - ε
+   have h7 : ε ≤ 0 := by linarith  -- 從 s ≤ s - ε 得到 ε ≤ 0
+   exact not_le_of_gt hε h7  -- ε > 0 與 ε ≤ 0 矛盾
+
+-- Theorem 1.15. If E ⊆ ℤ has a supremum, then sup E ∈ E. In particular, if the
+-- supremum of a set, which contains only integers, exists, that supremum must be
+-- an integer.
+theorem Theorem_1_15 (E : Set ℤ) (s : ℝ) (hs : is_supremum s (E.image (Int.cast : ℤ → ℝ))) :
+   (s : ℝ) ∈ (E.image (Int.cast : ℤ → ℝ)) := by
+   by_contra h_not  -- 反證法：假設 s 不在 E 的像中
+   have h1 : ∃ a ∈ E.image (Int.cast : ℤ → ℝ), s - (1/2 : ℝ) < a ∧ a ≤ s :=
+      Theorem_1_14 (E.image (Int.cast : ℤ → ℝ)) s hs (1/2 : ℝ) (by norm_num)  -- 使用定理 1.14，取 ε = 1/2
+   obtain ⟨a, ha_in, h1_left, h1_right⟩ := h1  -- 分解存在性證明，得到 a ∈ E 的像，且 s - 1/2 < a ≤ s
+   obtain ⟨n, hn_in, hn_eq⟩ := ha_in  -- 因為 a 在 E 的像中，存在整數 n ∈ E 使得 a = ↑n
+   have h2 : a = (n : ℝ) := hn_eq.symm  -- a 等於整數 n 的實數轉換
+   have h3 : a < s := by  -- 證明 a < s（關鍵步驟）
+      by_contra h_eq  -- 假設 a ≥ s
+      push_neg at h_eq  -- 轉換為 a ≥ s
+      have h4 : a = s := le_antisymm h1_right h_eq  -- 從 a ≤ s 和 a ≥ s 得到 a = s
+      rw [← h2, h4] at hn_eq  -- 將 a 替換為 s，得到 s = ↑n
+      have h5 : s = (n : ℝ) := h4.symm.trans h2  -- s = a = ↑n
+      have h6 : (n : ℝ) ∈ E.image (Int.cast : ℤ → ℝ) := ⟨ n, hn_in, rfl ⟩  -- n 在 E 的像中
+      rw [← h5] at h6  -- 將 ↑n 替換為 s
+      exact h_not h6  -- 與假設矛盾（s 在 E 的像中）
+   have h7 : s - a > 0 := sub_pos.mpr h3  -- 從 a < s 得到 s - a > 0
+   have h8 : ∃ b ∈ E.image (Int.cast : ℤ → ℝ), a < b ∧ b ≤ s := by  -- 存在另一個整數 b，使得 a < b ≤ s
+      have h9 : ∃ b ∈ E.image (Int.cast : ℤ → ℝ), s - (s - a) < b ∧ b ≤ s :=
+         Theorem_1_14 (E.image (Int.cast : ℤ → ℝ)) s hs (s - a) h7  -- 使用定理 1.14，取 ε = s - a
+      obtain ⟨ b, hb_in, hb_left, hb_right⟩ := h9  -- 分解存在性證明
+      have h10 : a = s - (s - a) := by ring  -- 代數恆等式：a = s - (s - a)
+      have h11 : a < b := by rw [h10]; exact hb_left  -- 從 s - (s - a) < b 得到 a < b
+      use b, hb_in, h11, hb_right  -- 構造存在性證明
+   obtain ⟨ b, hb_in, hb_left, hb_right⟩ := h8  -- 分解得到整數 b，滿足 a < b ≤ s
+   obtain ⟨ m, hm_in, hm_eq⟩ := hb_in  -- 因為 b 在 E 的像中，存在整數 m ∈ E 使得 b = ↑m
+   have h12 : b = (m : ℝ) := hm_eq.symm  -- b 等於整數 m 的實數轉換
+   have h13 : 0 < b - a := sub_pos.mpr hb_left  -- 從 a < b 得到 b - a > 0
+   have h14 : b - a < 1 := by  -- 證明 b - a < 1（關鍵不等式）
+      have h15 : s - (1/2 : ℝ) < a := h1_left  -- 從 h1 得到 s - 1/2 < a
+      calc
+         b - a
+         _ ≤ s - a := sub_le_sub_right hb_right a  -- 從 b ≤ s 得到 b - a ≤ s - a
+         _ < 1/2 := by linarith  -- 從 s - 1/2 < a 得到 s - a < 1/2
+         _ < 1 := by norm_num  -- 1/2 < 1
+   have h16 : b - a = (m - n : ℝ) := by rw [h12, h2]  -- b - a = ↑m - ↑n = ↑(m - n)
+   have h17 : (0 : ℝ) < (m - n : ℝ) ∧ (m - n : ℝ) < 1 := by  -- 0 < ↑(m - n) < 1
+      constructor
+      rw [← h16]; exact h13  -- 從 b - a > 0 得到 ↑(m - n) > 0
+      rw [← h16]; exact h14  -- 從 b - a < 1 得到 ↑(m - n) < 1
+   have h18 : ¬ (∃ k : ℤ, (0 : ℝ) < (k : ℝ) ∧ (k : ℝ) < 1) := by  -- 不存在整數 k 使得 0 < ↑k < 1
+      intro h  -- 假設存在這樣的 k
+      obtain ⟨ k, hk_left, hk_right⟩ := h  -- 分解存在性證明
+      have h19 : (k : ℤ) ≤ 0 ∨ (k : ℤ) ≥ 1 := by  -- 整數的三歧性：k ≤ 0 或 k ≥ 1
+         by_cases h_le : (k : ℤ) ≤ 0  -- 分情況：k ≤ 0 或 k > 0
+         left; exact h_le  -- 情況 1：k ≤ 0
+         right  -- 情況 2：k > 0
+         push_neg at h_le  -- 轉換為 k > 0
+         exact Int.add_one_le_of_lt h_le  -- 從 k > 0 得到 k ≥ 1（整數性質）
+      cases h19 with
+      | inl h_le =>  -- 情況 1：k ≤ 0
+         have h20 : (k : ℝ) ≤ 0:= by
+            rw [← Int.cast_zero]
+            exact Int.cast_le.mpr h_le  -- 整數轉換保序：k ≤ 0 則 ↑k ≤ 0
+         linarith  -- 與 hk_left : ↑k > 0 矛盾
+      | inr h_ge =>  -- 情況 2：k ≥ 1
+         have h21 : (k : ℝ) ≥ 1 := by
+            rw [← Int.cast_one]
+            exact Int.cast_le.mpr h_ge  -- 整數轉換保序：k ≥ 1 則 ↑k ≥ 1
+         linarith  -- 與 hk_right : ↑k < 1 矛盾
+   -- 使用 Int.cast_sub 转换：↑(m - n) = ↑m - ↑n
+   -- 注意：(m - n : ℝ) 等价于 ↑(m - n)
+   have h22 : (0 : ℝ) < ↑(m - n) := by  -- 證明 0 < ↑(m - n)
+      calc
+         (0 : ℝ)
+         _ < ↑m - ↑n := h17.1  -- 從 h17 得到 0 < ↑m - ↑n
+         _ = ↑(m - n) := (Int.cast_sub m n).symm  -- 使用整數轉換的減法性質
+   have h23 : ↑(m - n) < (1 : ℝ) := by  -- 證明 ↑(m - n) < 1
+      calc
+         ↑(m - n)
+         _ = ↑m - ↑n := Int.cast_sub m n  -- 使用整數轉換的減法性質
+         _ < (1 : ℝ) := h17.2  -- 從 h17 得到 ↑m - ↑n < 1
+   exact h18 ⟨m - n, h22, h23⟩  -- 與 h18 矛盾（存在整數 m - n 使得 0 < ↑(m - n) < 1）
+
 end WadeAnalysis
