@@ -4562,6 +4562,1818 @@ a \leq b \land b \leq a \Rightarrow a = b
 
 ---
 
+## 定理 1.20(2)：下確界與上確界的對偶性
+
+### 定理陳述
+
+**定理 1.20(2)**：設 \(E \subset \mathbb{R}\) 為集合。則：
+
+**(a) 等價性**：\(E\) 有下確界 當且僅當 \(-E\) 有上確界
+
+**(b) 關係式**：若 \(t = \inf E\)，\(s = \sup(-E)\)，則 \(s = -t\)
+
+**符號說明**：
+\[
+-E := \{-x : x \in E\} = \text{neg\_set}(E)
+\]
+
+**數學表述**：
+\[
+(\exists t, \text{is\_infimum}(t, E)) \Leftrightarrow (\exists s, \text{is\_supremum}(s, -E))
+\]
+\[
+\forall t, s, \quad \text{is\_infimum}(t, E) \land \text{is\_supremum}(s, -E) \Rightarrow s = -t
+\]
+
+### 核心思想
+
+這個定理是**定理 1.20(1) 的對偶版本**，揭示了下確界與上確界的對稱關係：
+
+**直觀理解**：
+- 若 \(t\) 是 \(E\) 中所有元素的「地板」（最大的下界）
+- 則 \(-t\) 是 \(-E\) 中所有元素的「天花板」（最小的上界）
+
+**視覺化**：
+
+```
+     E:  -s ≤ [  x₁  x₂  x₃  ]  (下確界)
+                ↓   ↓   ↓
+    -E:    [ -x₃ -x₂ -x₁  ]  ≤ -t (上確界)
+```
+
+**與定理 1.20(1) 的關係**：
+- **定理 1.20(1)**：上確界 ↔ 下確界（\(\sup E\) 與 \(\inf(-E)\)）
+- **定理 1.20(2)**：下確界 ↔ 上確界（\(\inf E\) 與 \(\sup(-E)\)）
+
+這兩個定理互為對偶，證明方法也完全對稱！
+
+### Lean 4 完整證明（帶詳細註解）
+
+```lean
+-- 定理 1.20(2)：E 有下確界 ⟺ -E 有上確界，且 sup(-E) = -inf(E)
+theorem Theorem_1_20_2 (E : Set ℝ):
+   ((∃ t, is_infimum t E) ↔ (∃ s, is_supremum s (neg_set E))) ∧  -- 第一部分：等價性
+   (∀ t s, is_infimum t E → is_supremum s (neg_set E) → s = -t) := by  -- 第二部分：關係式
+   constructor  -- 分解合取（∧）：需要證明兩個部分
+   {
+      -- 【第一部分】證明等價性：(∃ t, is_infimum t E) ↔ (∃ s, is_supremum s (neg_set E))
+      constructor  -- 分解雙向蘊涵（↔）：需要證明 (⇒) 和 (⇐)
+      {
+         -- 【⇒ 方向】若 E 有下確界 t，則 -E 有上確界 -t
+         intro h  -- 假設：h : ∃ t, is_infimum t E
+         obtain ⟨t, ht⟩ := h  -- 解構存在性：取出下確界 t 和證據 ht : is_infimum t E
+         use -t  -- 聲稱：-t 是 neg_set E 的上確界（需要證明 is_supremum (-t) (neg_set E)）
+         constructor  -- 分解 is_supremum 的定義：(1) -t 是上界 ∧ (2) -t 是最小的上界
+         {
+            -- 【證明 -t 是上界】即證明：∀ x ∈ neg_set E, x ≤ -t
+            intro x hx  -- 任取 x ∈ neg_set E（即 -x ∈ E）
+            have h1 : -x ∈ E := hx  -- 根據 neg_set 的定義，x ∈ neg_set E 意味著 -x ∈ E
+            have h2 : t ≤ -x := ht.1 (-x) h1  -- 因為 t 是 E 的下界，所以 t ≤ -x
+            linarith  -- 線性算術推理：從 t ≤ -x 得到 x ≤ -t
+         }
+         {
+            -- 【證明 -t 是最小的上界】即證明：∀ m, is_upper_bound m (neg_set E) → -t ≤ m
+            intro m hm  -- 任取上界 m（hm : 對所有 x ∈ neg_set E，x ≤ m）
+            have h1 : -m ≤ t := by  -- 先證明 -m ≤ t，然後得到 -t ≤ m
+               apply ht.2  -- 用下確界的性質：若 -m 是 E 的下界，則 -m ≤ t
+               intro a ha  -- 證明 -m 是 E 的下界：任取 a ∈ E，證明 -m ≤ a
+               have h2 : -a ∈ neg_set E := by simp [neg_set]; exact ha  -- 因為 a ∈ E，所以 -a ∈ neg_set E
+               have h3 : -a ≤ m := hm (-a) h2  -- 因為 -a ∈ neg_set E 且 m 是上界，所以 -a ≤ m
+               linarith  -- 從 -a ≤ m 得到 -m ≤ a
+            linarith  -- 從 -m ≤ t 得到 -t ≤ m
+         }
+      }
+      {
+         -- 【⇐ 方向】若 -E 有上確界 s，則 E 有下確界 -s
+         intro h  -- 假設：h : ∃ s, is_supremum s (neg_set E)
+         obtain ⟨s, hs⟩ := h  -- 解構存在性：取出上確界 s 和證據 hs : is_supremum s (neg_set E)
+         use -s  -- 聲稱：-s 是 E 的下確界（需要證明 is_infimum (-s) E）
+         constructor  -- 分解 is_infimum 的定義：(1) -s 是下界 ∧ (2) -s 是最大的下界
+         {
+            -- 【證明 -s 是下界】即證明：∀ x ∈ E, -s ≤ x
+            intro x hx  -- 任取 x ∈ E
+            have h1 : -x ∈ neg_set E := by simp [neg_set]; exact hx  -- 先證明 -x ∈ neg_set E
+            have h2 : -x ≤ s := hs.1 (-x) h1  -- 因為 s 是 neg_set E 的上界，所以 -x ≤ s
+            linarith  -- 從 -x ≤ s 得到 -s ≤ x
+         }
+         {
+            -- 【證明 -s 是最大的下界】即證明：∀ m, is_lower_bound m E → m ≤ -s
+            intro m hm  -- 任取下界 m（hm : 對所有 x ∈ E，m ≤ x）
+            have h1 : -m ≥ s := by  -- 先證明 -m ≥ s（即 s ≤ -m），然後得到 m ≤ -s
+               apply hs.2  -- 用上確界的性質：若 -m 是 neg_set E 的上界，則 s ≤ -m
+               intro y hy  -- 證明 -m 是 neg_set E 的上界：任取 y ∈ neg_set E，證明 y ≤ -m
+               have h2 : -y ∈ E := hy  -- hy : y ∈ neg_set E，根據定義就是 -y ∈ E
+               have h3 : m ≤ -y := hm (-y) h2  -- 因為 -y ∈ E 且 m 是下界，所以 m ≤ -y
+               linarith  -- 從 m ≤ -y 得到 y ≤ -m
+            linarith  -- 從 s ≤ -m 得到 m ≤ -s
+         }
+      }
+   }
+   {
+      -- 【第二部分】證明關係式：若 t 是 E 的下確界，s 是 -E 的上確界，則 s = -t
+      intro t s ht hs  -- 引入 t, s 和假設 ht : is_infimum t E, hs : is_supremum s (neg_set E)
+      -- 策略：用雙向不等式 s ≤ -t 且 -t ≤ s，然後用 le_antisymm 得到 s = -t
+      have h1 : s ≤ -t := by  -- 證明 s ≤ -t
+         apply hs.2  -- 用上確界的性質：若 -t 是 neg_set E 的上界，則 s ≤ -t
+         intro x hx  -- 證明 -t 是 neg_set E 的上界：任取 x ∈ neg_set E，證明 x ≤ -t
+         have h2 : -x ∈ E := hx  -- hx : x ∈ neg_set E，根據定義就是 -x ∈ E
+         have h3 : t ≤ -x := ht.1 (-x) h2  -- 因為 t 是 E 的下界，所以 t ≤ -x
+         linarith  -- 從 t ≤ -x 得到 x ≤ -t
+      have h2 : -t ≤ s := by  -- 證明 -t ≤ s
+         have h3 : -s ≤ t := by  -- 先證明 -s ≤ t（等價於 -t ≤ s）
+            apply ht.2  -- 用下確界的性質：若 -s 是 E 的下界，則 -s ≤ t
+            intro a ha  -- 證明 -s 是 E 的下界：任取 a ∈ E，證明 -s ≤ a
+            have h4 : -a ∈ neg_set E := by simp [neg_set]; exact ha  -- 因為 a ∈ E，所以 -a ∈ neg_set E
+            have h5 : -a ≤ s := hs.1 (-a) h4  -- 因為 -a ∈ neg_set E 且 s 是上界，所以 -a ≤ s
+            linarith  -- 從 -a ≤ s 得到 -s ≤ a
+         linarith  -- 從 -s ≤ t 得到 -t ≤ s
+      exact le_antisymm h1 h2  -- 由 s ≤ -t 且 -t ≤ s，得到 s = -t（反對稱性）
+   }
+```
+
+### 證明結構解析
+
+這個證明和定理 1.20(1) 有**完全對稱的結構**：
+
+#### **對稱性對照表**
+
+| 定理 1.20(1) | 定理 1.20(2) |
+|-------------|-------------|
+| \(E\) 有上確界 | \(E\) 有下確界 |
+| \(-E\) 有下確界 | \(-E\) 有上確界 |
+| \(\inf(-E) = -\sup E\) | \(\sup(-E) = -\inf E\) |
+| \(s = \sup E\) | \(t = \inf E\) |
+| \(t = \inf(-E)\) | \(s = \sup(-E)\) |
+| \(t = -s\) | \(s = -t\) |
+
+#### **證明結構**（三層）
+
+**第一層：合取分解**
+```lean
+((∃ t, is_infimum t E) ↔ (∃ s, is_supremum s (neg_set E))) ∧ (...)
+           └──────────────── 等價性 ────────────────┘   └─ 關係式 ─┘
+```
+
+**第二層：雙向蘊涵分解**
+- **(⇒)**：\(E\) 有下確界 \(\Rightarrow\) \(-E\) 有上確界 \(-t\)
+- **(⇐)**：\(-E\) 有上確界 \(\Rightarrow\) \(E\) 有下確界 \(-s\)
+
+**第三層：確界性質分解**
+- 是界（下界 / 上界）
+- 是最優的界（最大 / 最小）
+
+### 關鍵技巧詳解
+
+#### **技巧 1：對偶性的理解**
+
+**定理 1.20(1) vs 定理 1.20(2)**：
+
+兩個定理的證明策略完全對稱，只需要：
+- 把「上確界」和「下確界」互換
+- 把「上界」和「下界」互換
+- 把「最小」和「最大」互換
+- 不等式方向翻轉（\(\leq\) 變 \(\geq\)，或反之）
+
+#### **技巧 2：不等式鏈的建立**
+
+**證明 \(-t\) 是上界**：
+```
+t 是下界
+  ⇒ ∀ y ∈ E, t ≤ y
+  ⇒ ∀ x ∈ -E, t ≤ -x  （取 y = -x）
+  ⇒ ∀ x ∈ -E, x ≤ -t
+  ⇒ -t 是上界
+```
+
+**證明 \(-t\) 是最小上界**：
+```
+t 是最大下界
+  ⇒ 對任意下界 m', m' ≤ t
+  ⇒ 對任意上界 m（令 m' = -m）, -m ≤ t
+  ⇒ -t ≤ m
+  ⇒ -t 是最小上界
+```
+
+#### **技巧 3：雙重取負的處理**
+
+**關鍵性質**：
+- \(x \in \text{neg\_set}(E) \Leftrightarrow -x \in E\)
+- \(-(-a) = a\)（雙重取負消除）
+
+**在證明中**：
+- 要證 \(-a \in \text{neg\_set}(E)\)，需要證 \(-(-a) = a \in E\)
+- 用 `simp [neg_set]` 自動處理這個化簡
+
+#### **技巧 4：參數順序的注意**
+
+**注意定理陳述的參數順序**：
+```lean
+-- 定理 1.20(1): ∀ s t, is_supremum s E → is_infimum t (neg_set E) → t = -s
+-- 定理 1.20(2): ∀ t s, is_infimum t E → is_supremum s (neg_set E) → s = -t
+```
+
+- 定理 1.20(1)：先 \(s\)（上確界），後 \(t\)（下確界）
+- 定理 1.20(2)：先 \(t\)（下確界），後 \(s\)（上確界）
+
+這反映了對偶性！
+
+### 使用的定理和策略
+
+#### **Lean 策略**（與定理 1.20(1) 相同）
+
+1. **`constructor`**：分解合取或雙向蘊涵
+2. **`intro` / `obtain`**：引入假設和解構
+3. **`use`**：提供存在性見證
+4. **`apply`**：應用確界的性質
+5. **`have`**：建立中間結果
+6. **`linarith`**：處理線性不等式
+7. **`simp [neg_set]`**：展開 `neg_set` 定義
+8. **`le_antisymm`**：證明相等
+
+#### **核心邏輯**
+
+兩個方向的證明都依賴：
+1. **界的對偶性**：\(t\) 是 \(E\) 的下界 \(\Leftrightarrow\) \(-t\) 是 \(-E\) 的上界
+2. **最優性的對偶性**：\(t\) 是最大下界 \(\Leftrightarrow\) \(-t\) 是最小上界
+
+### 證明流程圖
+
+```
+定理 1.20(2)
+    │
+    ├─ 第一部分：等價性
+    │   │
+    │   ├─ (⇒) 若 E 有下確界 t
+    │   │   │
+    │   │   ├─ 聲稱 -t 是 -E 的上確界
+    │   │   │   │
+    │   │   │   ├─ 證明 -t 是上界
+    │   │   │   │   └─ ∀ x ∈ -E, x ≤ -t
+    │   │   │   │       └─ 從 t ≤ -x 推出（因為 t 是下界）
+    │   │   │   │
+    │   │   │   └─ 證明 -t 是最小上界
+    │   │   │       └─ ∀ m (上界), -t ≤ m
+    │   │   │           └─ 證明 -m 是 E 的下界 → -m ≤ t → -t ≤ m
+    │   │   │
+    │   │   └─ 完成
+    │   │
+    │   └─ (⇐) 若 -E 有上確界 s
+    │       │
+    │       └─ 聲稱 -s 是 E 的下確界（對稱證明）
+    │
+    └─ 第二部分：關係式 s = -t
+        │
+        ├─ 證明 s ≤ -t
+        │   └─ 證明 -t 是 -E 的上界
+        │
+        ├─ 證明 -t ≤ s
+        │   └─ 證明 -s ≤ t
+        │       └─ 證明 -s 是 E 的下界
+        │
+        └─ 用 le_antisymm 得 s = -t
+```
+
+### 常見錯誤與陷阱
+
+#### **錯誤 1：與定理 1.20(1) 混淆**
+
+❌ **錯誤**：在定理 1.20(2) 中使用定理 1.20(1) 的結論  
+✅ **正確**：雖然兩者對稱，但需要獨立證明
+
+#### **錯誤 2：不等式方向搞反**
+
+在定理 1.20(2) 中：
+- ❌ **錯誤**：用上確界的性質證明下確界
+- ✅ **正確**：\(t\) 是下確界 → \(t \leq y\) （不是 \(y \leq t\)）
+
+#### **錯誤 3：參數順序錯誤**
+
+```lean
+-- ❌ 錯誤
+intro s t hs ht  -- 順序反了
+
+-- ✅ 正確  
+intro t s ht hs  -- 先 t (下確界), 後 s (上確界)
+```
+
+### 定理 1.20 的完整圖景
+
+#### **兩個定理的統一視角**
+
+| 面向 | 定理 1.20(1) | 定理 1.20(2) |
+|-----|-------------|-------------|
+| 起點 | 上確界（\(\sup E\)） | 下確界（\(\inf E\)） |
+| 終點 | 下確界（\(\inf(-E)\)） | 上確界（\(\sup(-E)\)） |
+| 關係 | \(\inf(-E) = -\sup E\) | \(\sup(-E) = -\inf E\) |
+| 核心 | 上 → 下 | 下 → 上 |
+
+#### **四個確界的關係**
+
+對任意集合 \(E\)：
+
+```
+        sup E         ←對偶→        inf(-E) = -sup E
+          ↑                              ↑
+     定理 1.20(1)                   定理 1.20(1)
+          ↓                              ↓
+        inf E         ←對偶→        sup(-E) = -inf E
+```
+
+### 練習題
+
+#### **基礎練習**
+
+1. **證明**：若 \(t = \inf E\)，則 \(-t = \sup(-E)\)。
+
+2. **計算**：設 \(E = [-2, 3)\)，求：
+   - \(\inf E\)
+   - \(\sup(-E)\)
+   - 驗證 \(\sup(-E) = -\inf E\)
+
+#### **進階練習**
+
+3. **證明**：若 \(E_1, E_2\) 非空有下界，則
+   \[
+   \inf(E_1 + E_2) = \inf E_1 + \inf E_2
+   \]
+
+4. **Lean 練習**：證明若 \(\sup E\) 和 \(\inf E\) 都存在，則 \(\inf E \leq \sup E\)。
+
+#### **挑戰練習**
+
+5. **統一證明**：能否寫一個更抽象的定理，同時包含 1.20(1) 和 1.20(2)？
+
+6. **推廣**：定理 1.20 能否推廣到 \(\mathbb{R} \cup \{\pm\infty\}\)？
+
+### 與其他定理的聯繫
+
+#### **與完備性公設的關係**
+
+**完備性公設的兩種表述**：
+1. **上確界版本**：非空有上界集合有上確界
+2. **下確界版本**：非空有下界集合有下確界
+
+**定理 1.20 證明了兩種表述等價**：
+- 由定理 1.20(1)：上確界存在 → 下確界存在
+- 由定理 1.20(2)：下確界存在 → 上確界存在
+
+#### **在後續定理中的應用**
+
+- **定理 1.21**：區間套定理
+- **定理 1.22**：Bolzano-Weierstrass 定理
+- **定理 1.30**：Heine-Borel 定理
+
+這些定理的證明都會用到上下確界的對偶性。
+
+### 延伸思考
+
+#### **哲學意義**
+
+定理 1.20 揭示了一個深刻的對稱性：
+- 在實數系統中，「向上」和「向下」是完全對稱的
+- 這種對稱性來自於實數的完備性
+
+#### **在其他數學分支中**
+
+- **拓撲學**：開集與閉集的對偶
+- **範疇論**：對偶範疇
+- **線性代數**：對偶空間
+- **優化理論**：原問題與對偶問題
+
+定理 1.20 是這些對偶性的原型！
+
+---
+
+這個定理是定理 1.20(1) 的完美對偶，證明方法完全對稱。掌握這兩個定理，能夠深刻理解上下確界的本質和實數系統的對稱性。
+
+---
+
+## 定理 1.21(1)：子集的上確界不大於母集的上確界
+
+### 定理陳述
+
+**定理 1.21(1)**：設 \(A \subseteq B\) 為實數集合。若 \(s = \sup B\) 且 \(t = \sup A\)，則：
+\[
+t \leq s
+\]
+
+即：**子集的上確界不大於母集的上確界**。
+
+**數學表述**：
+\[
+\forall s, t \in \mathbb{R}, \quad \text{is\_supremum}(s, B) \land \text{is\_supremum}(t, A) \Rightarrow t \leq s
+\]
+
+### 核心思想
+
+這個定理陳述了一個直觀的事實：
+
+**直觀理解**：
+- 如果 \(A\) 是 \(B\) 的子集，\(A\) 的元素更少
+- 因此 \(A\) 的「天花板」（上確界）不會比 \(B\) 的「天花板」更高
+
+**視覺化**：
+
+```
+B:  [●  ●  ●  ●  ●  ●  ●] ≤ s (sup B)
+     
+A:     [●  ●  ●  ●] ≤ t (sup A)
+       
+       A ⊆ B  ⟹  t ≤ s
+```
+
+**為什麼這個定理重要？**
+1. **單調性**：體現上確界運算的單調性
+2. **實用性**：比較不同集合的上確界
+3. **基礎性**：許多不等式證明的基礎
+
+### Lean 4 完整證明（帶詳細註解）
+
+```lean
+-- 定理 1.21(1)：若 A ⊆ B，則 sup(A) ≤ sup(B)
+theorem Theorem_1_21_1 (A B : Set ℝ) (hA_sub_B : A ⊆ B) :
+   ∀ s t, is_supremum s B → is_supremum t A → t ≤ s := by  -- 若 s = sup B，t = sup A，則 t ≤ s
+   intro s t hs ht  -- 引入上確界 s, t 和假設 hs : is_supremum s B, ht : is_supremum t A
+   -- 【策略】用 t 的最小性：只需證明 s 是 A 的上界
+   apply ht.2  -- 用上確界 t 的最小性：若 s 是 A 的上界，則 t ≤ s
+   -- 【證明 s 是 A 的上界】即證明：∀ a ∈ A, a ≤ s
+   intro a ha  -- 任取 a ∈ A
+   have ha_in_B : a ∈ B := hA_sub_B ha  -- 因為 A ⊆ B 且 a ∈ A，所以 a ∈ B
+   exact hs.1 a ha_in_B  -- 因為 s 是 B 的上界且 a ∈ B，所以 a ≤ s（用 hs.1：上界性質）
+```
+
+### 證明結構解析
+
+這個證明**非常簡潔**，只有三個關鍵步驟：
+
+#### **證明策略**
+
+要證明 \(t \leq s\)，利用**上確界的最小性**：
+- \(t\) 是 \(A\) 的最小上界
+- 所以只需證明 \(s\) 是 \(A\) 的上界
+- 則自動得到 \(t \leq s\)
+
+#### **證明流程**
+
+```
+目標：t ≤ s
+  ↓
+用 ht.2（t 的最小性）
+  ↓
+新目標：s 是 A 的上界
+  ↓
+證明：∀ a ∈ A, a ≤ s
+  ↓
+  任取 a ∈ A
+    → a ∈ B（因為 A ⊆ B）
+    → a ≤ s（因為 s 是 B 的上界）
+  ↓
+完成！
+```
+
+### 關鍵技巧詳解
+
+#### **技巧 1：利用上確界的最小性**
+
+**上確界的兩個性質**：
+1. **`hs.1`**：\(s\) 是上界 → `∀ x ∈ B, x ≤ s`
+2. **`hs.2`**：\(s\) 是最小上界 → `∀ M (上界), s ≤ M`
+
+**在證明中**：
+- 用 `ht.2`（\(t\) 的最小性）將目標從 `t ≤ s` 轉換為「證明 \(s\) 是 \(A\) 的上界」
+- 這是**間接證明**的典型應用
+
+#### **技巧 2：子集關係的使用**
+
+**子集的定義**：
+```lean
+A ⊆ B  ⟺  ∀ x, x ∈ A → x ∈ B
+```
+
+**在證明中**：
+```lean
+have ha_in_B : a ∈ B := hA_sub_B ha
+```
+- `hA_sub_B : A ⊆ B` 是一個函數，可以對 `ha : a ∈ A` 應用
+- 得到 `a ∈ B`
+
+#### **技巧 3：傳遞性鏈**
+
+**邏輯鏈**：
+```
+a ∈ A  (假設)
+  → a ∈ B  (子集關係)
+  → a ≤ s  (s 是 B 的上界)
+```
+
+這個鏈條非常直接，體現了證明的簡潔性。
+
+### 證明的優雅之處
+
+#### **1. 證明長度**
+
+只有 **4 行核心證明**：
+```lean
+apply ht.2
+intro a ha
+have ha_in_B : a ∈ B := hA_sub_B ha
+exact hs.1 a ha_in_B
+```
+
+#### **2. 證明思路**
+
+**關鍵洞察**：
+- 不直接比較 \(t\) 和 \(s\)
+- 而是證明 \(s\) 也是 \(A\) 的上界
+- 利用「最小」的定義自動得出結論
+
+#### **3. 無需反證或複雜構造**
+
+這是一個**構造性證明**，完全基於定義展開。
+
+### 使用的定理和策略
+
+#### **Lean 策略**
+
+1. **`intro`**：引入全稱量詞和假設
+2. **`apply`**：應用定理（這裡是上確界的最小性）
+3. **`have`**：建立中間結果
+4. **`exact`**：精確匹配目標
+
+#### **關鍵定理**
+
+1. **上確界的定義**：
+   ```lean
+   is_supremum s E := is_upper_bound s E ∧ (∀ M, is_upper_bound M E → s ≤ M)
+   ```
+
+2. **子集的定義**：
+   ```lean
+   A ⊆ B := ∀ x, x ∈ A → x ∈ B
+   ```
+
+### 推廣與變形
+
+#### **推廣 1：下確界版本**
+
+**定理**：若 \(A \subseteq B\)，則 \(\inf B \leq \inf A\)
+
+**注意方向**：
+- 上確界：\(\sup A \leq \sup B\)（子集的上確界更小）
+- 下確界：\(\inf B \leq \inf A\)（子集的下確界更大）
+
+**為什麼方向相反？**
+- 子集元素更少，「天花板」更低，「地板」更高
+
+#### **推廣 2：有界集合**
+
+**推論**：若 \(A \subseteq B\) 且 \(B\) 有界，則 \(A\) 有界。
+
+**證明思路**：
+- \(B\) 有上界 \(M\) → \(M\) 也是 \(A\) 的上界
+- \(B\) 有下界 \(m\) → \(m\) 也是 \(A\) 的下界
+
+#### **推廣 3：不等式鏈**
+
+若 \(A_1 \subseteq A_2 \subseteq \cdots \subseteq A_n\)，則：
+\[
+\sup A_1 \leq \sup A_2 \leq \cdots \leq \sup A_n
+\]
+
+這體現了上確界運算的**單調性**。
+
+### 應用實例
+
+#### **實例 1：區間包含**
+
+**命題**：\([0, 1] \subseteq [0, 2]\)，驗證 \(\sup[0,1] \leq \sup[0,2]\)
+
+**驗證**：
+- \(\sup[0, 1] = 1\)
+- \(\sup[0, 2] = 2\)
+- 確實 \(1 \leq 2\) ✓
+
+#### **實例 2：有理數與實數**
+
+**命題**：\(\mathbb{Q} \cap [0, 1] \subseteq [0, 1]\)
+
+**結論**：
+\[
+\sup(\mathbb{Q} \cap [0, 1]) \leq \sup[0, 1] = 1
+\]
+
+事實上，\(\sup(\mathbb{Q} \cap [0, 1]) = 1\)（因為有理數稠密）
+
+#### **實例 3：數列的上確界**
+
+設 \(a_n = 1 - \frac{1}{n}\)，令：
+- \(A_n = \{a_1, a_2, \ldots, a_n\}\)
+- \(A = \{a_n : n \in \mathbb{N}\}\)
+
+則 \(A_n \subseteq A\)，所以 \(\sup A_n \leq \sup A = 1\)
+
+### 常見錯誤與陷阱
+
+#### **錯誤 1：方向搞反**
+
+❌ **錯誤**：\(A \subseteq B\) 所以 \(\sup A \geq \sup B\)  
+✅ **正確**：\(A \subseteq B\) 所以 \(\sup A \leq \sup B\)
+
+**記憶法**：子集更小，上確界也更小（或相等）
+
+#### **錯誤 2：忘記空集情況**
+
+在某些情況下需要考慮：
+- 若 \(A = \emptyset\)，\(\sup A\) 可能未定義
+- 定理通常假設集合非空且有上確界
+
+#### **錯誤 3：混淆上界和上確界**
+
+❌ **錯誤**：\(s\) 是 \(B\) 的上界，所以 \(s\) 是 \(A\) 的上確界  
+✅ **正確**：\(s\) 是 \(B\) 的上界，所以 \(s\) 是 \(A\) 的**上界**（不一定是上確界）
+
+### 對偶定理：下確界版本
+
+#### **定理 1.21(1') - 下確界版本**
+
+**定理**：設 \(A \subseteq B\)。若 \(m = \inf B\) 且 \(n = \inf A\)，則：
+\[
+m \leq n
+\]
+
+**證明思路**（完全對稱）：
+1. 用 \(n\) 的最大性
+2. 證明 \(m\) 是 \(A\) 的下界
+3. 因為 \(A \subseteq B\) 且 \(m\) 是 \(B\) 的下界
+
+**Lean 證明**：
+```lean
+theorem Theorem_1_21_1' (A B : Set ℝ) (hA_sub_B : A ⊆ B) :
+   ∀ m n, is_infimum m B → is_infimum n A → m ≤ n := by
+   intro m n hm hn
+   apply hn.2  -- 用 n 的最大性
+   intro a ha  -- 證明 m 是 A 的下界
+   have ha_in_B : a ∈ B := hA_sub_B ha
+   exact hm.1 a ha_in_B
+```
+
+### 練習題
+
+#### **基礎練習**
+
+1. **證明**：若 \(A \subseteq B \subseteq C\)，則 \(\sup A \leq \sup C\)。
+
+2. **計算**：設 \(A = \{1, 2, 3\}\)，\(B = \{1, 2, 3, 4, 5\}\)。
+   - 計算 \(\sup A\) 和 \(\sup B\)
+   - 驗證 \(\sup A \leq \sup B\)
+
+#### **進階練習**
+
+3. **證明**：若 \(A \subseteq B\) 且 \(\sup A = \sup B\)，則 \(\sup B \in A\) 或 \(\sup B\) 是 \(A\) 的極限點。
+
+4. **Lean 練習**：證明下確界版本的定理 1.21(1')。
+
+#### **挑戰練習**
+
+5. **反例**：能否找到 \(A \subseteq B\) 使得 \(\sup A = \sup B\) 但 \(A \neq B\)？
+
+6. **推廣**：若 \(A_1 \subseteq A_2 \subseteq A_3 \subseteq \cdots\)，證明 \(\sup(\bigcup_{n=1}^{\infty} A_n) = \lim_{n \to \infty} \sup A_n\)。
+
+### 與其他定理的聯繫
+
+#### **與完備性公設的關係**
+
+定理 1.21 假設上確界存在，但不保證存在性。結合完備性公設：
+- 若 \(B\) 非空有上界，則 \(\sup B\) 存在（完備性）
+- 若 \(A \subseteq B\)，則 \(A\) 也有上界（定理 1.21）
+- 因此 \(A\) 也有上確界
+
+#### **在後續定理中的應用**
+
+- **區間套定理**（定理 1.21）：需要比較嵌套區間的端點
+- **Heine-Borel 定理**：需要比較開覆蓋的上確界
+- **極限理論**：比較部分和的上確界
+
+### 延伸閱讀
+
+1. **格論（Lattice Theory）**
+   - 上確界作為格上的並運算
+   - 單調性是格同態的基本性質
+
+2. **測度論**
+   - 子集的測度不大於母集的測度
+   - 單調性的推廣
+
+3. **拓撲學**
+   - 子空間的緊性
+   - 包含關係下的性質傳遞
+
+---
+
+這個定理看似簡單，但揭示了上確界運算的單調性，是許多後續證明的基礎。其證明也展示了如何巧妙地利用上確界的最小性質。
+
+---
+
+## 定理 1.21(2)：子集的下確界不小於母集的下確界
+
+### 定理陳述
+
+**定理 1.21(2)**：設 \(A \subseteq B\) 為實數集合。若 \(s = \inf B\) 且 \(t = \inf A\)，則：
+\[
+s \leq t
+\]
+
+即：**子集的下確界不小於母集的下確界**。
+
+**數學表述**：
+\[
+\forall t, s \in \mathbb{R}, \quad \text{is\_infimum}(s, B) \land \text{is\_infimum}(t, A) \Rightarrow s \leq t
+\]
+
+### 核心思想
+
+這個定理是**定理 1.21(1) 的對偶版本**，方向相反：
+
+**定理 1.21(1) vs 定理 1.21(2)**：
+- **上確界**：\(A \subseteq B \Rightarrow \sup A \leq \sup B\)（子集的上確界更小）
+- **下確界**：\(A \subseteq B \Rightarrow \inf B \leq \inf A\)（子集的下確界更大）
+
+**直觀理解**：
+- 子集 \(A\) 的元素更少
+- \(A\) 的「天花板」（上確界）不會比 \(B\) 更高
+- \(A\) 的「地板」（下確界）不會比 \(B\) 更低
+
+**視覺化**：
+
+```
+B:  m (inf B) ≤ [●  ●  ●  ●  ●  ●  ●]
+     
+A:              n (inf A) ≤ [●  ●  ●  ●]
+       
+       A ⊆ B  ⟹  m ≤ n
+```
+
+**為什麼方向相反？**
+- 上確界是「向上看」，元素越少，上界越低
+- 下確界是「向下看」，元素越少，下界越高
+- 這體現了上下確界的**對偶性**
+
+### Lean 4 完整證明（帶詳細註解）
+
+```lean
+-- 定理 1.21(2)：若 A ⊆ B，則 inf(B) ≤ inf(A)（注意方向與上確界相反）
+theorem Theorem_1_21_2 (A B : Set ℝ) (hA_sub_B : A ⊆ B) :
+   ∀ t s, is_infimum s B → is_infimum t A → s ≤ t := by  -- 若 s = inf B，t = inf A，則 s ≤ t
+   intro t s ht hs  -- 引入下確界 t, s 和假設 ht : is_infimum s B, hs : is_infimum t A
+   -- 【策略】用 t 的最大性：只需證明 s 是 A 的下界
+   apply hs.2  -- 用下確界 t 的最大性：若 s 是 A 的下界，則 s ≤ t（hs 對應 is_infimum t A）
+   -- 【證明 s 是 A 的下界】即證明：∀ a ∈ A, s ≤ a
+   intro a ha  -- 任取 a ∈ A
+   have ha_in_B : a ∈ B := hA_sub_B ha  -- 因為 A ⊆ B 且 a ∈ A，所以 a ∈ B
+   exact ht.1 a ha_in_B  -- 因為 s 是 B 的下界且 a ∈ B，所以 s ≤ a（用 ht.1：下界性質）
+```
+
+### 證明結構解析
+
+這個證明和定理 1.21(1) **完全對稱**：
+
+#### **證明策略對照**
+
+| 定理 1.21(1) | 定理 1.21(2) |
+|-------------|-------------|
+| 證明 \(t \leq s\) | 證明 \(s \leq t\) |
+| 用 \(t\) 的最小性 | 用 \(t\) 的最大性 |
+| 證明 \(s\) 是 \(A\) 的**上界** | 證明 \(s\) 是 \(A\) 的**下界** |
+| \(\forall a \in A, a \leq s\) | \(\forall a \in A, s \leq a\) |
+
+#### **證明流程**
+
+```
+目標：s ≤ t
+  ↓
+用 hs.2（t 的最大性）
+  ↓
+新目標：s 是 A 的下界
+  ↓
+證明：∀ a ∈ A, s ≤ a
+  ↓
+  任取 a ∈ A
+    → a ∈ B（因為 A ⊆ B）
+    → s ≤ a（因為 s 是 B 的下界）
+  ↓
+完成！
+```
+
+### 關鍵觀察：方向為什麼相反？
+
+#### **直觀解釋**
+
+想像一個集合的「範圍」：
+
+```
+       sup B (大集合的天花板，較高)
+          ↑
+       sup A (小集合的天花板，較低)
+          ↑
+    [  A 的元素  ]
+          ↓
+       inf A (小集合的地板，較高)
+          ↓
+       inf B (大集合的地板，較低)
+```
+
+**原因**：
+- 元素越多，範圍越大
+- 上確界越高，下確界越低
+
+#### **數學推理**
+
+**上確界**：
+- \(A \subseteq B\) → 任何 \(B\) 的上界也是 \(A\) 的上界
+- 所以 \(\sup B\) 是 \(A\) 的上界
+- 因此 \(\sup A \leq \sup B\)（\(\sup A\) 是最小上界）
+
+**下確界**：
+- \(A \subseteq B\) → 任何 \(B\) 的下界也是 \(A\) 的下界
+- 所以 \(\inf B\) 是 \(A\) 的下界
+- 因此 \(\inf B \leq \inf A\)（\(\inf A\) 是最大下界）
+
+### 關鍵技巧詳解
+
+#### **技巧 1：對偶性的運用**
+
+定理 1.21(1) 和 1.21(2) 的證明**完全平行**：
+- 把「上」換成「下」
+- 把「最小」換成「最大」
+- 把 \(\leq\) 換成 \(\geq\)
+
+#### **技巧 2：下確界的最大性**
+
+**下確界的兩個性質**：
+1. **`ht.1`**：\(t\) 是下界 → `∀ x ∈ A, t ≤ x`
+2. **`hs.2`**：\(t\) 是最大下界 → `∀ m (下界), m ≤ t`
+
+**在證明中**：
+```lean
+apply hs.2  -- 將目標從 s ≤ t 轉換為「證明 s 是 A 的下界」
+```
+
+#### **技巧 3：記住不等式方向**
+
+**常見混淆**：
+- ❌ 以為下確界也是「子集更小」
+- ✅ 正確：下確界是「子集更大」
+
+**記憶法**：
+- 上確界：向上看，子集範圍小，所以上確界小
+- 下確界：向下看，子集範圍小，所以下確界大
+
+### 定理 1.21 的完整圖景
+
+#### **兩個部分的統一視角**
+
+對於 \(A \subseteq B\)：
+
+```
+                    sup B
+                     ↑
+                   sup A   ← 上確界：子集更小
+                     ↑
+    ━━━━━━━━━━━━━━━━━━━━━━━━
+                B 的範圍
+    ━━━━━━━━━━━━━━━━━━━━━━━━
+                     ↓
+                   inf A   ← 下確界：子集更大
+                     ↓
+                    inf B
+```
+
+#### **不等式鏈**
+
+\[
+\inf B \leq \inf A \leq \sup A \leq \sup B
+\]
+
+這四個確界的關係完整描述了兩個集合的包含關係！
+
+### 應用實例
+
+#### **實例 1：區間包含**
+
+**命題**：\([1, 3] \subseteq [0, 5]\)
+
+**驗證**：
+- \(\inf[0, 5] = 0 \leq 1 = \inf[1, 3]\) ✓
+- \(\sup[1, 3] = 3 \leq 5 = \sup[0, 5]\) ✓
+
+#### **實例 2：收斂數列**
+
+設 \(a_n = \frac{1}{n}\)，令：
+- \(A_n = \{a_k : k \geq n\}\)
+- \(A_{n+1} \subseteq A_n\)（遞減的集合序列）
+
+則：
+\[
+\inf A_1 \leq \inf A_2 \leq \cdots \leq \inf A_n \leq \cdots
+\]
+
+這是一個**遞增**的下確界序列！
+
+#### **實例 3：函數的值域**
+
+設 \(f : [0, 1] \to \mathbb{R}\)，令：
+- \(A = \{f(x) : x \in [0, 1]\}\)
+- \(B = \{f(x) : x \in [0, 2]\}\)
+
+若 \([0, 1] \subseteq [0, 2]\)，則：
+\[
+\inf B \leq \inf A \leq \sup A \leq \sup B
+\]
+
+### 常見錯誤與陷阱
+
+#### **錯誤 1：方向搞反（最常見！）**
+
+❌ **錯誤**：\(A \subseteq B\) 所以 \(\inf A \leq \inf B\)  
+✅ **正確**：\(A \subseteq B\) 所以 \(\inf B \leq \inf A\)
+
+**提醒**：下確界的方向和上確界**相反**！
+
+#### **錯誤 2：與定理 1.21(1) 混淆**
+
+| 項目 | 定理 1.21(1) | 定理 1.21(2) |
+|-----|-------------|-------------|
+| 確界類型 | 上確界 | 下確界 |
+| 不等式 | \(\sup A \leq \sup B\) | \(\inf B \leq \inf A\) |
+| 方向 | 左小右大 | 左小右大 |
+
+注意：雖然不等號方向一致，但左右的集合順序相反！
+
+#### **錯誤 3：忘記方向的原因**
+
+**錯誤思維**：「子集更小，所以所有確界都更小」  
+**正確思維**：「子集元素更少，範圍更窄，上確界更低，下確界更高」
+
+### 推廣與應用
+
+#### **推廣 1：區間套的收斂**
+
+若 \(I_1 \supseteq I_2 \supseteq I_3 \supseteq \cdots\) 是遞減的閉區間序列，則：
+- 下端點序列 \(a_n = \inf I_n\) 遞增
+- 上端點序列 \(b_n = \sup I_n\) 遞減
+
+這是**區間套定理**的基礎！
+
+#### **推廣 2：單調性原理**
+
+對於集合運算，確界滿足：
+- **並集**：\(\sup(A \cup B) = \max(\sup A, \sup B)\)
+- **交集**：\(A \cap B \subseteq A\) → \(\sup(A \cap B) \leq \sup A\)
+
+#### **推廣 3：測度論**
+
+在測度論中：
+- 子集的測度不大於母集的測度
+- 這是單調性的推廣
+
+### 練習題
+
+#### **基礎練習**
+
+1. **證明**：若 \(A \subseteq B \subseteq C\)，則 \(\inf C \leq \inf A\)。
+
+2. **計算**：設 \(A = \{-3, -2, -1\}\)，\(B = \{-5, -4, -3, -2, -1, 0\}\)。
+   - 計算 \(\inf A\) 和 \(\inf B\)
+   - 驗證 \(\inf B \leq \inf A\)
+
+#### **進階練習**
+
+3. **證明**：若 \(A \subseteq B\)，則 \(\sup B - \inf B \geq \sup A - \inf A\)（母集的「寬度」更大）。
+
+4. **Lean 練習**：證明若 \(A \subseteq B\) 且兩者都有上下確界，則 \(\sup A - \inf A \leq \sup B - \inf B\)。
+
+#### **挑戰練習**
+
+5. **反例**：能否找到 \(A \subseteq B\) 使得 \(\inf A = \inf B\) 但 \(A \neq B\)？
+
+6. **推廣**：證明若 \(\{A_n\}\) 是遞減的集合序列（\(A_1 \supseteq A_2 \supseteq \cdots\)），則 \(\{\inf A_n\}\) 是遞增數列。
+
+### 定理 1.21 的完整總結
+
+#### **兩個部分的對照**
+
+| 項目 | 定理 1.21(1) | 定理 1.21(2) |
+|-----|-------------|-------------|
+| **確界** | 上確界 (\(\sup\)) | 下確界 (\(\inf\)) |
+| **不等式** | \(\sup A \leq \sup B\) | \(\inf B \leq \inf A\) |
+| **策略** | 用 \(t\) 的最小性 | 用 \(t\) 的最大性 |
+| **證明** | \(s\) 是 \(A\) 的上界 | \(s\) 是 \(A\) 的下界 |
+| **方向** | 子集的上確界更小 | 子集的下確界更大 |
+
+#### **統一的直覺**
+
+\(A \subseteq B\) 意味著：
+- \(A\) 的「範圍」更窄
+- 上面的「天花板」更低
+- 下面的「地板」更高
+
+#### **在數學中的重要性**
+
+1. **區間套定理**：利用下確界的遞增性
+2. **Bolzano-Weierstrass**：利用子序列的確界關係
+3. **測度論**：單調性的推廣
+4. **優化理論**：可行域縮小時的最優值變化
+
+---
+
+這個定理和定理 1.21(1) 完美對偶，深刻體現了上下確界的對稱性。掌握這兩個定理，特別是**方向相反**的原因，對理解確界概念至關重要！
+
+---
+
+## 定義 1.38：有限集合、可數集合與不可數集合
+
+### 定義陳述
+
+**定義 1.38**：設 \(E\) 為集合。
+
+**i) 有限集合（Finite）**  
+\(E\) 稱為**有限的**，當且僅當 \(E = \emptyset\) 或存在 1-1 函數將 \(\{1, 2, \ldots, n\}\) 映射到 \(E\)（對某個 \(n \in \mathbb{N}\)）。
+
+**ii) 可數集合（Countable）**  
+\(E\) 稱為**可數的**，當且僅當存在 1-1 函數將 \(\mathbb{N}\) 映射到 \(E\)。
+
+**iii) 至多可數（At most countable）**  
+\(E\) 稱為**至多可數的**，當且僅當 \(E\) 是有限的或可數的。
+
+**iv) 不可數集合（Uncountable）**  
+\(E\) 稱為**不可數的**，當且僅當 \(E\) 既非有限也非可數。
+
+### 核心思想
+
+這組定義建立了集合大小的層次結構：
+
+```
+     有限集合
+        ↓
+    可數集合（可數無窮）
+        ↓
+   至多可數集合 = 有限 ∪ 可數
+        ↓
+    不可數集合
+```
+
+**直觀理解**：
+- **有限**：可以「數完」（有限個元素）
+- **可數**：可以「排成一列」（與自然數一一對應）
+- **至多可數**：要麼數得完，要麼排得成一列
+- **不可數**：太多了，無法排成一列（比自然數「更多」）
+
+### 重要例子
+
+#### **有限集合**
+- \(\{1, 2, 3\}\)
+- \([0, 1] \cap \mathbb{Q}\) 的有限子集
+- 任何 \(n\) 個元素的集合
+
+#### **可數集合（可數無窮）**
+- \(\mathbb{N} = \{1, 2, 3, \ldots\}\)（自然數）
+- \(\mathbb{Z} = \{\ldots, -2, -1, 0, 1, 2, \ldots\}\)（整數）
+- \(\mathbb{Q}\)（有理數）← 令人驚訝！
+- \(\mathbb{N} \times \mathbb{N}\)（自然數對）
+
+#### **不可數集合**
+- \(\mathbb{R}\)（實數）← Cantor 對角線論證
+- \([0, 1]\)（閉區間）
+- \((0, 1)\)（開區間）
+- \(\mathbb{R} \setminus \mathbb{Q}\)（無理數）
+
+### Mathlib 中的定義與對應
+
+在 Lean 4 的 Mathlib 中，這些概念已經內建：
+
+#### **Mathlib 定義**
+
+| 概念 | Mathlib 語法 | 意義 |
+|------|-------------|------|
+| 有限 | `Set.Finite E` | \(E\) 有有限個元素 |
+| 可數 | `Set.Countable E` | \(E\) 至多可數（包含有限！） |
+| 無限 | `Set.Infinite E` | \(E\) 不是有限的 |
+| 不可數 | `¬Set.Countable E` | \(E\) 不是至多可數的 |
+
+#### **Wade 定義與 Mathlib 的對應**
+
+| Wade 術語 | Wade 定義 | Mathlib 表示 |
+|-----------|----------|-------------|
+| finite | 有限個元素 | `Set.Finite E` |
+| countable | 與 ℕ 一一對應 | `Set.Countable E ∧ Set.Infinite E` |
+| at most countable | 有限或可數 | `Set.Countable E` |
+| uncountable | 非有限且非可數 | `¬Set.Countable E` |
+
+**⚠️ 重要區別**：
+- **Wade**：「countable」指可數無窮，不包含有限集合
+- **Mathlib**：「Countable」指至多可數，**包含**有限集合
+
+### Lean 4 代碼示例
+
+```lean
+-- 導入必要的模組
+import Mathlib.Data.Set.Finite
+import Mathlib.Data.Set.Countable
+
+-- 示例 1：有限集合
+example : Set.Finite ({1, 2, 3} : Set ℝ) := by
+   exact Set.finite_insert 1 (Set.finite_insert 2 (Set.finite_singleton 3))
+
+-- 示例 2：自然數集合是可數的
+example : Set.Countable (Set.univ : Set ℕ) := Set.countable_univ
+
+-- 示例 3：整數集合是可數的
+example : Set.Countable (Set.univ : Set ℤ) := Set.countable_univ
+
+-- 示例 4：實數區間 [0,1] 是不可數的（聲明）
+axiom real_interval_uncountable : ¬Set.Countable (Set.Icc (0 : ℝ) 1)
+
+-- 定理：有限集合必定（至多）可數
+theorem finite_is_countable {E : Set ℝ} (h : Set.Finite E) : Set.Countable E := 
+   Set.Finite.countable h
+
+-- 定理：子集的有限性
+theorem subset_finite {A B : Set ℝ} (hAB : A ⊆ B) (hB : Set.Finite B) : Set.Finite A :=
+   Set.Finite.subset hB hAB
+
+-- 定理：子集的可數性  
+theorem subset_countable {A B : Set ℝ} (hAB : A ⊆ B) (hB : Set.Countable B) : Set.Countable A :=
+   Set.Countable.mono hAB hB
+
+-- 定理：有限集合的並集仍是有限的
+theorem finite_union {A B : Set ℝ} (hA : Set.Finite A) (hB : Set.Finite B) : 
+   Set.Finite (A ∪ B) := 
+   Set.Finite.union hA hB
+
+-- 定理：可數集合的並集仍是可數的
+theorem countable_union {A B : Set ℝ} (hA : Set.Countable A) (hB : Set.Countable B) : 
+   Set.Countable (A ∪ B) := 
+   Set.Countable.union hA hB
+
+-- 定理：可數多個可數集合的並集仍是可數的
+theorem countable_Union_of_countable {ι : Type*} [Countable ι] {f : ι → Set ℝ} 
+   (h : ∀ i, Set.Countable (f i)) : Set.Countable (⋃ i, f i) := 
+   Set.countable_iUnion h
+```
+
+### 關鍵定理
+
+#### **定理 1：有限性的性質**
+
+1. **子集保持有限性**：若 \(A \subseteq B\) 且 \(B\) 有限，則 \(A\) 有限
+2. **並集保持有限性**：若 \(A, B\) 有限，則 \(A \cup B\) 有限
+3. **有限集合必定至多可數**：有限 ⇒ 至多可數
+
+#### **定理 2：可數性的性質**
+
+1. **子集保持可數性**：若 \(A \subseteq B\) 且 \(B\) 至多可數，則 \(A\) 至多可數
+2. **並集保持可數性**：若 \(A, B\) 至多可數，則 \(A \cup B\) 至多可數
+3. **可數並保持可數性**：可數多個至多可數集合的並集仍至多可數
+
+#### **定理 3：有理數是可數的**
+
+**定理**：\(\mathbb{Q}\) 是可數的。
+
+**證明思路**（Cantor 對角線排列）：
+```
+1/1  1/2  1/3  1/4  1/5  ...
+ ↓   ↗    ↓
+2/1  2/2  2/3  2/4  ...
+     ↓   ↗
+3/1  3/2  3/3  ...
+         ↓
+4/1  4/2  ...
+```
+
+按照之字形路徑遍歷，跳過重複的分數，得到：
+\[
+\mathbb{Q}^+ = \{1/1, 2/1, 1/2, 1/3, 3/1, 4/1, 3/2, 2/3, \ldots\}
+\]
+
+#### **定理 4：實數是不可數的**
+
+**定理**（Cantor）：\(\mathbb{R}\) 是不可數的。
+
+**證明思路**（對角線論證）：
+假設 \([0,1]\) 可數，可以排成列表：
+```
+x₁ = 0.a₁₁ a₁₂ a₁₃ a₁₄ ...
+x₂ = 0.a₂₁ a₂₂ a₂₃ a₂₄ ...
+x₃ = 0.a₃₁ a₃₂ a₃₃ a₃₄ ...
+x₄ = 0.a₄₁ a₄₂ a₄₃ a₄₄ ...
+```
+
+構造新數 \(y = 0.b₁b₂b₃b₄\ldots\)，其中 \(b_i \neq a_{ii}\)。
+
+則 \(y \in [0,1]\) 但 \(y\) 不在列表中（與每個 \(x_i\) 至少有一位不同）。
+
+矛盾！所以 \([0,1]\) 不可數。
+
+### 重要性質對照表
+
+| 性質 | 有限 | 可數無窮 | 不可數 |
+|------|------|---------|--------|
+| **元素個數** | 有限個 | 無限個 | 無限個 |
+| **可排序** | 是 | 是 | 否 |
+| **與 ℕ 關係** | 可映射 | 一一對應 | 無一一對應 |
+| **子集** | 保持有限 | 保持可數 | 可能可數 |
+| **可數並** | 有限 | 可數 | 可能不可數 |
+| **例子** | \(\{1,2,3\}\) | \(\mathbb{N}, \mathbb{Q}\) | \(\mathbb{R}\) |
+
+### 常見錯誤與陷阱
+
+#### **錯誤 1：混淆 Wade 和 Mathlib 的 "countable"**
+
+❌ **錯誤**：在 Mathlib 中，`Set.Countable` 不包含有限集合  
+✅ **正確**：Mathlib 的 `Set.Countable` **包含**有限集合
+
+#### **錯誤 2：以為「無窮」就是「不可數」**
+
+❌ **錯誤**：\(\mathbb{N}\) 是無窮的，所以不可數  
+✅ **正確**：\(\mathbb{N}\) 是無窮的，但是可數的（可數無窮）
+
+#### **錯誤 3：直覺判斷可數性**
+
+❌ **錯誤**：\(\mathbb{Q}\) 在數線上很「密」，所以不可數  
+✅ **正確**：\(\mathbb{Q}\) 雖然稠密，但仍是可數的
+
+#### **錯誤 4：可數並的誤解**
+
+❌ **錯誤**：不可數個可數集合的並集仍可數  
+✅ **正確**：**可數**個可數集合的並集才可數
+
+### 應用與推廣
+
+#### **應用 1：測度論**
+
+在測度論中：
+- 可數集合的 Lebesgue 測度為 0
+- \(\mathbb{Q}\) 的測度為 0（雖然稠密！）
+- \([0,1]\) 的測度為 1
+
+#### **應用 2：拓撲學**
+
+- 可數集合的拓撲性質（第一可數、第二可數）
+- 不可數離散空間不可度量化
+
+#### **應用 3：實分析**
+
+- 幾乎處處（almost everywhere）的概念
+- Lebesgue 積分與 Riemann 積分的差異
+
+#### **應用 4：集合論**
+
+- 不同的無窮大：\(|\mathbb{N}| = \aleph_0 < |\mathbb{R}| = 2^{\aleph_0}\)
+- 連續統假設：是否存在集合 \(S\) 使得 \(|\mathbb{N}| < |S| < |\mathbb{R}|\)？
+
+### 練習題
+
+#### **基礎練習**
+
+1. **證明**：任何有限集合的子集仍是有限的。
+
+2. **證明**：兩個可數集合的笛卡爾積 \(\mathbb{N} \times \mathbb{N}\) 是可數的。
+
+3. **判斷**：以下集合哪些是可數的？
+   - \(\{n^2 : n \in \mathbb{N}\}\)
+   - \(\{1/n : n \in \mathbb{N}\}\)
+   - \(\{\sqrt{n} : n \in \mathbb{N}\}\)
+
+#### **進階練習**
+
+4. **證明**：有限多個可數集合的並集是可數的。
+
+5. **證明**：\(\mathbb{Z}\)（整數集）是可數的。（提示：排列為 \(0, 1, -1, 2, -2, \ldots\)）
+
+6. **證明**：所有有限長度的二進制字符串的集合是可數的。
+
+#### **挑戰練習**
+
+7. **證明**：\(\mathbb{Q}\)（有理數）是可數的。（使用對角線排列）
+
+8. **證明**：開區間 \((0, 1)\) 是不可數的。
+
+9. **證明**：若 \(A\) 可數，\(B\) 不可數，則 \(B \setminus A\) 不可數。
+
+10. **Lean 練習**：在 Lean 中證明兩個有限集合的並集是有限的。
+
+### 歷史註記
+
+#### **Cantor 的革命性發現**
+
+Georg Cantor（康托，1845-1918）在 19 世紀末發現：
+1. **無窮有不同的大小**（1874）
+2. **實數不可數**（1891，對角線論證）
+3. **建立了集合論的基礎**
+
+這些發現在當時引起巨大爭議，但最終成為現代數學的基石。
+
+#### **對角線論證的影響**
+
+Cantor 的對角線論證成為：
+- **停機問題不可判定**（圖靈）
+- **哥德爾不完備定理**
+- 許多不可能性證明的模板
+
+### 延伸閱讀
+
+1. **集合論基礎**
+   - Cantor 定理：\(|S| < |P(S)|\)（冪集總是更大）
+   - 基數算術：\(\aleph_0 + \aleph_0 = \aleph_0\)
+
+2. **實分析中的應用**
+   - Baire 綱定理
+   - 不可數與完備性
+
+3. **拓撲學**
+   - 可數性公理
+   - Lindelöf 空間
+
+4. **測度論**
+   - 零測集
+   - Lebesgue 測度的可數可加性
+
+---
+
+這個定義揭示了無窮的層次結構，是實分析和集合論的基礎概念。Mathlib 提供了完整的形式化框架，讓我們能夠嚴格證明關於可數性的定理。
+
+---
+
+## 第 2 章補充：數列的有界性（定義 2.7）與「收斂 ⇒ 有界」（定理 2.8）
+
+### 定義 2.7：數列的有界性
+
+令 \(\{x_n\}\) 為實數數列。把數列的值域寫成集合：
+\[
+\mathrm{range}(x) := \{x_n : n \in \mathbb{N}\}.
+\]
+
+**(i) 上方有界**：\(\{x_n\}\) 上方有界 \(\Longleftrightarrow \mathrm{range}(x)\) 上方有界。  
+**(ii) 下方有界**：\(\{x_n\}\) 下方有界 \(\Longleftrightarrow \mathrm{range}(x)\) 下方有界。  
+**(iii) 有界**：\(\{x_n\}\) 有界 \(\Longleftrightarrow\) 同時上方有界且下方有界。
+
+在本專案（`Analysis/Basic.lean`）中，我們直接用集合的有界性來定義數列有界：
+
+```lean
+def seq_bounded_above (x : ℕ → ℝ) : Prop :=
+  bounded_above (Set.range x)
+
+def seq_bounded_below (x : ℕ → ℝ) : Prop :=
+  bounded_below (Set.range x)
+
+def seq_bounded (x : ℕ → ℝ) : Prop :=
+  bounded (Set.range x)
+```
+
+### 定理 2.8：每個收斂數列都是有界的
+
+**定理 2.8**：若 \(x_n \to a\)，則 \(\{x_n\}\) 有界。
+
+**數學證明主線**（對應 Lean 證明的結構）：
+- 取 \(\varepsilon = 1\)。由收斂得存在 \(N\)，使得 \(n \ge N \Rightarrow |x_n-a|<1\)。因此尾部滿足
+  \[
+  a-1 \le x_n \le a+1 \quad (n \ge N).
+  \]
+- 頭部 \(\{x_0,\dots,x_{N-1}\}\) 是有限集合，所以一定有上下界。
+- 取「尾部界」與「頭部界」做 max/min，即可得到整個數列的上界與下界。
+
+### 完整數學證明（可逐行對照 Lean）
+
+要證明「\(\{x_n\}\) 有界」，等價於同時證明：
+\[
+\exists M,\ \forall n,\ x_n \le M
+\quad\text{以及}\quad
+\exists m,\ \forall n,\ m \le x_n.
+\]
+
+#### Step 1：取 \(\varepsilon=1\)，得到尾部被夾住
+
+由 \(x_n \to a\)，對 \(\varepsilon=1>0\)，存在 \(N\in\mathbb N\) 使得
+\[
+n\ge N \Longrightarrow |x_n-a|<1.
+\]
+而 \(|x_n-a|<1\) 等價於
+\[
+-1 < x_n-a < 1,
+\]
+因此當 \(n\ge N\) 時：
+\[
+a-1 < x_n < a+1.
+\]
+特別地，我們會用到較弱但更方便的版本：
+\[
+n\ge N \Longrightarrow x_n \le a+1,
+\qquad
+n\ge N \Longrightarrow a-1 \le x_n.
+\]
+
+#### Step 2：頭部有限項一定有上下界
+
+考慮有限集合（頭部）
+\[
+H := \{x_0,x_1,\dots,x_{N-1}\}.
+\]
+因為 \(H\) 是有限集合，所以存在實數 \(M_{\text{head}}\) 與 \(m_{\text{head}}\) 使得：
+\[
+\forall k\in\{0,\dots,N-1\},\quad x_k \le M_{\text{head}},
+\]
+\[
+\forall k\in\{0,\dots,N-1\},\quad m_{\text{head}} \le x_k.
+\]
+（這一步在 Lean 用 `Finset.image x (Finset.range N)`，再用 `max'` / `min'` 取得上下界。）
+
+#### Step 3：合併頭尾界，得到整體上界
+
+令
+\[
+M := \max(a+1,\ M_{\text{head}}).
+\]
+對任意 \(n\)：
+- 若 \(n\ge N\)，由 Step 1 得 \(x_n\le a+1\le M\)。
+- 若 \(n<N\)，則 \(x_n\in H\)，由 Step 2 得 \(x_n\le M_{\text{head}}\le M\)。
+
+因此 \(\forall n,\ x_n \le M\)，上方有界成立。
+
+#### Step 4：合併頭尾界，得到整體下界
+
+令
+\[
+m := \min(a-1,\ m_{\text{head}}).
+\]
+對任意 \(n\)：
+- 若 \(n\ge N\)，由 Step 1 得 \(a-1\le x_n\) 且 \(m\le a-1\)，所以 \(m\le x_n\)。
+- 若 \(n<N\)，則 \(x_n\in H\)，由 Step 2 得 \(m_{\text{head}}\le x_n\) 且 \(m\le m_{\text{head}}\)，所以 \(m\le x_n\)。
+
+因此 \(\forall n,\ m \le x_n\)，下方有界成立。
+
+#### 結論
+
+同時得到上方有界與下方有界，所以 \(\{x_n\}\) 有界，證畢。
+
+### Lean 4 證明（行尾註解風格）
+
+```lean
+def converge_to (x : ℕ → ℝ) (a : ℝ) : Prop :=  -- xₙ → a
+  ∀ ε > 0, ∃ N : ℕ, ∀ n : ℕ, n ≥ N → |x n - a| < ε  -- ε–N 定義
+
+lemma finite_set_has_upper_bound (s : Finset ℝ) (hs : s.Nonempty) :  -- s 非空
+    ∃ M, ∀ x ∈ s, x ≤ M := by  -- 存在 M 使得 ∀ x ∈ s, x ≤ M
+  use s.max' hs  -- 取 M = s 的最大元素
+  intro x hx  -- 任取 x ∈ s
+  exact Finset.le_max' s x hx  -- 由 max' 的性質得 x ≤ max'
+
+theorem Theorem_2_8 (x : ℕ → ℝ) (a : ℝ) (h : converge_to x a) : seq_bounded x := by
+   unfold seq_bounded bounded bounded_above bounded_below  -- 展開定義
+   constructor  -- 上方有界 / 下方有界
+   {
+      obtain ⟨N, hN⟩ := h 1 (by norm_num : (0 : ℝ) < 1)  -- 取 ε = 1
+      have h_tail : ∀ n ≥ N, x n ≤ a + 1 := by  -- 尾部上界
+        intro n hn
+        have h_conv : |x n - a| < 1 := hN n hn
+        have h_parts := abs_sub_lt_iff.mp h_conv
+        linarith
+      by_cases h_case : N = 0
+      · use a + 1
+        intro y hy
+        obtain ⟨n, rfl⟩ := hy
+        have : n ≥ N := by simp [h_case]
+        exact h_tail n this
+      · let head_set := Finset.image x (Finset.range N)  -- 頭部有限集合
+        have h_nonempty : head_set.Nonempty := by
+          use x 0
+          simp [head_set]
+          use 0
+          constructor
+          · exact Nat.pos_of_ne_zero h_case
+          · rfl
+        obtain ⟨M_head, hM_head⟩ := finite_set_has_upper_bound head_set h_nonempty
+        use max (a + 1) M_head  -- 合併頭尾界
+        intro y hy
+        obtain ⟨n, rfl⟩ := hy
+        rcases lt_or_ge n N with hn | hn
+        · have h_in : x n ∈ head_set := by
+            simp [head_set]
+            refine ⟨n, hn, rfl⟩
+          exact le_trans (hM_head (x n) h_in) (le_max_right (a + 1) M_head)
+        · exact le_trans (h_tail n hn) (le_max_left (a + 1) M_head)
+   }
+   {
+      obtain ⟨N, hN⟩ := h 1 (by norm_num : (0 : ℝ) < 1)  -- 取 ε = 1
+      have h_tail : ∀ n ≥ N, a - 1 ≤ x n := by  -- 尾部下界
+        intro n hn
+        have h_conv : |x n - a| < 1 := hN n hn
+        have h_parts := abs_sub_lt_iff.mp h_conv
+        linarith
+      by_cases h_case : N = 0
+      · use a - 1
+        intro y hy
+        obtain ⟨n, rfl⟩ := hy
+        have : n ≥ N := by simp [h_case]
+        exact h_tail n this
+      · let head_set := Finset.image x (Finset.range N)
+        have h_nonempty : head_set.Nonempty := by
+          use x 0
+          simp [head_set]
+          use 0
+          constructor
+          · exact Nat.pos_of_ne_zero h_case
+          · rfl
+        have h_has_min : ∃ m, ∀ x_val ∈ head_set, m ≤ x_val := by
+          use head_set.min' h_nonempty
+          intro x_val hx
+          exact Finset.min'_le head_set x_val hx
+        obtain ⟨m_head, hm_head⟩ := h_has_min
+        use min (a - 1) m_head  -- 合併頭尾界
+        intro y hy
+        obtain ⟨n, rfl⟩ := hy
+        rcases lt_or_ge n N with hn | hn
+        · have h_in : x n ∈ head_set := by
+            simp [head_set]
+            refine ⟨n, hn, rfl⟩
+          exact le_trans (min_le_right (a - 1) m_head) (hm_head (x n) h_in)
+        · exact le_trans (min_le_left (a - 1) m_head) (h_tail n hn)
+   }
+```
+
+### Lean 語法與證明手法詳解（對照上面程式）
+
+這裡把定理 2.8 用到的 **Lean 語法** 與 **證明策略**逐一拆開說明；你之後看到類似的「收斂 ⇒ 有界」都可以照這個模板做。
+
+#### 1) 定義與展開：`def` / `unfold`
+
+- **`def converge_to ... : Prop := ...`**：定義命題（`Prop`），把 ε–N 定義直接翻譯成 Lean。
+- **`unfold seq_bounded bounded bounded_above bounded_below`**：把目標中的自定義符號展開成定義。
+  - **效果**：把 `seq_bounded x` 變成 `bounded_above (Set.range x) ∧ bounded_below (Set.range x)`。
+
+#### 2) 合取拆目標：`constructor`
+
+- **`constructor`**：當目標是 `P ∧ Q`（或 `P ↔ Q`）時，把證明拆成兩個子目標。
+  - 在本定理：第一塊 `{ ... }` 證明上方有界，第二塊 `{ ... }` 證明下方有界。
+
+#### 3) 存在量詞：`obtain ⟨..., ...⟩ := ...` / `use`
+
+- **`obtain ⟨N, hN⟩ := h 1 ...`**：從「存在某個 N」取出見證 `N` 與尾部估計 `hN`。
+- **`use M`**：當目標是 `∃ M, ...` 時先給出候選 `M`，剩下證明它真的是界。
+
+#### 4) 全稱量詞：`intro`
+
+- **`intro n hn`**：把 `∀ n` 或 `n ≥ N → ...` 的變數與前提引入上下文。
+
+#### 5) `Set.range`：把集合元素改寫成序列項
+
+- `hy : y ∈ Set.range x` 表示「存在某個 n，使得 y = x n」。
+- **`obtain ⟨n, rfl⟩ := hy`**：把 `y` 改寫成 `x n`，之後只需估計 `x n`。
+
+#### 6) 取 ε = 1：把收斂轉成尾部夾住
+
+- **`obtain ⟨N, hN⟩ := h 1 (by norm_num : (0:ℝ) < 1)`**：
+  - 得到 `hN : ∀ n ≥ N, |x n - a| < 1`。
+
+#### 7) 絕對值估計：`abs_sub_lt_iff` + `linarith`
+
+- **`abs_sub_lt_iff.mp h_conv`**：把 `|x n - a| < 1` 拆成線性不等式 `x n - a < 1 ∧ a - x n < 1`。
+- **`linarith`**：自動解線性不等式；例如推出 `x n ≤ a + 1` 與 `a - 1 ≤ x n`。
+
+#### 8) 分情況：`by_cases` / `rcases lt_or_ge ... with ... | ...`
+
+- **`by_cases h_case : N = 0`**：
+  - `N = 0`：頭部為空，整個序列都屬於尾部，直接用尾部界。
+  - `N ≠ 0`：需要處理有限頭部 `{x 0, ..., x (N-1)}`。
+- **`rcases lt_or_ge n N with hn | hn`**：把索引 `n` 分成 `n < N`（頭部）或 `n ≥ N`（尾部）。
+
+#### 9) 有限頭部：`Finset.range` / `Finset.image` / `max'` / `min'`
+
+- **`Finset.range N`**：有限索引集合 `{0,1,...,N-1}`。
+- **`Finset.image x (Finset.range N)`**：把頭部索引映到數列上，得到頭部有限值集合。
+- **`max'` / `min'`**：在 `Finset` 上取最大/最小值（需要 `Nonempty`）。
+
+#### 10) 合併頭尾界：`max` / `min` + `le_trans`
+
+- 上界取 `max (a + 1) M_head`、下界取 `min (a - 1) m_head`。
+- **`le_trans`**：把 `p ≤ q` 與 `q ≤ r` 串成 `p ≤ r`。
+
+#### 11) `simp` / `refine`（穩定手打的關鍵）
+
+- **`simp [h_case]`**：在 `N = 0` 分支，把 `n ≥ N` 化成 `n ≥ 0`。
+- **`refine ⟨n, hn, rfl⟩`**：一次塞入存在見證與證據，避免 tactic 狀態卡住。
+
+### 一句話模板
+
+**收斂 ⇒ 有界**：取 ε=1 得尾部夾住；把前 N 項做成 `Finset` 取 `max'/min'`；用 `max/min` 合併頭尾界。
+
+---
+
+## 定理 2.9(i)：夾擠定理（Squeeze Theorem）
+
+### 定理敘述
+
+設 \(\{x_n\}, \{y_n\}, \{w_n\}\) 為實數數列，且存在同一個 \(a \in \mathbb{R}\) 使得：
+- \(x_n \to a\)
+- \(y_n \to a\)
+- 並且存在 \(N_0\in\mathbb{N}\) 使得對所有 \(n \ge N_0\)，有
+  \[
+  x_n \le w_n \le y_n.
+  \]
+
+則 \(w_n \to a\)。
+
+### 完整數學證明（逐步）
+
+要證 \(w_n \to a\)，依 ε–N 定義，只要證明：
+\[
+\forall \varepsilon>0,\ \exists N,\ \forall n\ge N,\ |w_n-a|<\varepsilon.
+\]
+
+取任意 \(\varepsilon>0\)。
+
+1. 由 \(x_n \to a\)，存在 \(N_x\) 使得 \(n \ge N_x \Rightarrow |x_n-a|<\varepsilon\)。
+2. 由 \(y_n \to a\)，存在 \(N_y\) 使得 \(n \ge N_y \Rightarrow |y_n-a|<\varepsilon\)。
+3. 由夾擠條件，存在 \(N_0\) 使得 \(n \ge N_0 \Rightarrow x_n \le w_n \le y_n\)。
+
+令
+\[
+N := \max(\max(N_x,N_y),N_0).
+\]
+則對任意 \(n \ge N\)，同時有 \(n \ge N_x\)、\(n \ge N_y\)、\(n \ge N_0\)。
+
+因此：
+- 由 \(|y_n-a|<\varepsilon\) 可推出 \(y_n-a<\varepsilon\)；
+  又 \(w_n\le y_n\) 得 \(w_n-a \le y_n-a\)，所以
+  \[
+  w_n-a < \varepsilon.
+  \]
+- 由 \(|x_n-a|<\varepsilon\) 可推出 \(a-x_n<\varepsilon\)；
+  又 \(x_n\le w_n\) 得 \(a-w_n \le a-x_n\)，所以
+  \[
+  a-w_n < \varepsilon.
+  \]
+
+兩式合併即得：
+\[
+|w_n-a|<\varepsilon.
+\]
+因此 \(w_n \to a\)，證畢。
+
+### Lean 證明（行尾註解風格）
+
+```lean
+theorem Theorem_2_9_i (x y w : ℕ → ℝ) (a : ℝ)
+   (hx : converge_to x a) (hy : converge_to y a)  -- 假設：xₙ → a 且 yₙ → a
+   (hxy : ∃ N₀ : ℕ, ∀ (n : ℕ), n ≥ N₀ → x n ≤ w n ∧ w n ≤ y n) :  -- 假設：存在 N₀，使得 n ≥ N₀ 時 xₙ ≤ wₙ ≤ yₙ
+   converge_to w a := by  -- 目標：wₙ → a
+   unfold converge_to  -- 展開收斂定義：∀ ε > 0, ∃ N, ∀ n ≥ N, |w n - a| < ε
+   intro ε hε  -- 任取 ε > 0
+   obtain ⟨Nx, hNx⟩ := hx ε hε  -- 由 xₙ → a 得到 Nx：n ≥ Nx ⇒ |x n - a| < ε
+   obtain ⟨Ny, hNy⟩ := hy ε hε  -- 由 yₙ → a 得到 Ny：n ≥ Ny ⇒ |y n - a| < ε
+   obtain ⟨N₀, hN₀⟩ := hxy  -- 由夾擠條件取出 N₀：n ≥ N₀ ⇒ x n ≤ w n ∧ w n ≤ y n
+   refine ⟨max (max Nx Ny) N₀, ?_⟩  -- 取 N = max(max Nx Ny) N₀
+   intro n hn  -- 任取 n ≥ N
+   have hn_max : n ≥ max Nx Ny := le_trans (le_max_left _ _) hn  -- 得 n ≥ max Nx Ny
+   have hnNx : n ≥ Nx := le_trans (le_max_left _ _) hn_max  -- 得 n ≥ Nx
+   have hnNy : n ≥ Ny := le_trans (le_max_right _ _) hn_max  -- 得 n ≥ Ny
+   have hnN₀ : n ≥ N₀ := le_trans (le_max_right _ _) hn  -- 得 n ≥ N₀
+   have hw : x n ≤ w n ∧ w n ≤ y n := hN₀ n hnN₀  -- 得 x n ≤ w n 且 w n ≤ y n
+   apply (abs_sub_lt_iff).2  -- 將 |w n - a| < ε 改寫成 (w n - a < ε) ∧ (a - w n < ε)
+   constructor  -- 分成兩個不等式
+   {
+      have hy_abs : |y n - a| < ε := hNy n hnNy  -- |y n - a| < ε
+      have hy_lt : y n - a < ε := (abs_sub_lt_iff.mp hy_abs).1  -- 取出 y n - a < ε
+      have hw_le : w n - a ≤ y n - a := sub_le_sub_right hw.2 a  -- 由 w n ≤ y n 推出 w n - a ≤ y n - a
+      exact lt_of_le_of_lt hw_le hy_lt  -- 串接得到 w n - a < ε
+   }
+   {
+      have hx_abs : |x n - a| < ε := hNx n hnNx  -- |x n - a| < ε
+      have hx_lt : a - x n < ε := (abs_sub_lt_iff.mp hx_abs).2  -- 取出 a - x n < ε
+      have hw_ge : a - w n ≤ a - x n := sub_le_sub_left hw.1 a  -- 由 x n ≤ w n 推出 a - w n ≤ a - x n
+      exact lt_of_le_of_lt hw_ge hx_lt  -- 串接得到 a - w n < ε
+   }
+```
+
+### Lean 手法拆解（更細）
+
+- **核心策略**：先定義 \(N = \max(\max N_x N_y) N_0\)，確保一次取得三個「門檻」。
+- **`obtain ⟨Nx, hNx⟩ := hx ε hε`**：把收斂的「∃N」拆出見證與尾部估計。
+- **`have hn_max ...`**：用 `le_trans` + `le_max_left/right` 把 `n ≥ max(...)` 拆成 `n ≥ Nx`、`n ≥ Ny`、`n ≥ N₀`。
+- **`abs_sub_lt_iff`**：
+  - `abs_sub_lt_iff.mp`：把 `|t-a|<ε` 拆成兩個方向不等式。
+  - `abs_sub_lt_iff.mpr` / `(abs_sub_lt_iff).2`：把兩個方向不等式合成 `|t-a|<ε`。
+- **`sub_le_sub_right` / `sub_le_sub_left`**：
+  - `w ≤ y` ⇒ `w - a ≤ y - a`
+  - `x ≤ w` ⇒ `a - w ≤ a - x`
+- **`lt_of_le_of_lt`**：把「≤」和「<」串起來得到「<」。
+
+---
+
+## 定理 2.9(ii)：收斂到 0 的數列乘上有界數列仍收斂到 0
+
+### 定理敘述
+
+若 \(x_n \to 0\) 且 \(\{y_n\}\) 有界，則
+\[
+x_n y_n \to 0.
+\]
+
+### 完整數學證明（逐步，ε–N）
+
+因為 \(\{y_n\}\) 有界，存在 \(B \ge 0\) 使得對所有 \(n\)，有
+\[
+|y_n| \le B.
+\]
+
+要證 \(x_n y_n \to 0\)，取任意 \(\varepsilon > 0\)。由 \(x_n \to 0\)，對
+\[
+\delta := \frac{\varepsilon}{B+1} > 0
+\]
+存在 \(N\) 使得 \(n \ge N \Rightarrow |x_n| < \delta\)。
+
+因此當 \(n \ge N\) 時：
+\[
+|x_n y_n| = |x_n|\,|y_n| \le |x_n|\,B < \frac{\varepsilon}{B+1}\,B \le \varepsilon.
+\]
+
+所以 \(\forall \varepsilon>0\)，存在 \(N\) 使得 \(n\ge N \Rightarrow |x_n y_n|<\varepsilon\)，故 \(x_n y_n \to 0\)，證畢。
+
+> 為什麼用 \(B+1\) 而不是 \(B\)？  
+> 因為可能 \(B=0\)，用 \(B+1\) 可以保證分母正且不為 0，避免分母為 0 的特殊討論。
+
+### Lean 證明（行尾註解風格）
+
+```lean
+theorem Theorem_2_9_ii (x y : ℕ → ℝ) (h : converge_to x 0) (hy : seq_bounded y) :
+   converge_to (fun n => x n * y n) 0 := by  -- 目標：xₙ → 0 且 y 有界 ⇒ (xₙ*yₙ) → 0
+      unfold converge_to  -- 展開收斂定義
+      intro ε hε  -- 任取 ε > 0
+      have hy' : bounded (Set.range y) := by
+         -- seq_bounded y 的定義就是 bounded (Set.range y)
+         simpa [seq_bounded] using hy
+      have hy_above : bounded_above (Set.range y) := hy'.1  -- y 的值域有上界
+      have hy_below : bounded_below (Set.range y) := hy'.2  -- y 的值域有下界
+      obtain ⟨U, hU⟩ := hy_above  -- 取上界 U：∀ z ∈ range y, z ≤ U
+      obtain ⟨L, hL⟩ := hy_below  -- 取下界 L：∀ z ∈ range y, L ≤ z
+      -- 定義 B，並證明 ∀ n, |y n| ≤ B
+      let B : ℝ := max |L| |U|  -- 取 B = max(|L|,|U|)，用來控制 |y n|
+      have hB0 : 0 ≤ B := by
+         have : 0 ≤ |L| := abs_nonneg L
+         exact le_trans this (le_max_left _ _)
+      have h_abs_y : ∀ n : ℕ, |y n| ≤ B := by
+         intro n
+         have hyU : y n ≤ U := hU (y n) ⟨n, rfl⟩  -- 由上界性質得 y n ≤ U
+         have hyL : L ≤ y n := hL (y n) ⟨n, rfl⟩  -- 由下界性質得 L ≤ y n
+         have hy_le_B : y n ≤ B := by
+            have : y n ≤ |U| := le_trans hyU (le_abs_self U)
+            exact le_trans this (le_max_right _ _)
+         have hnegB_le_y : -B ≤ y n := by
+            have : - |L| ≤ L := neg_abs_le L
+            have h1 : - |L| ≤ y n := le_trans this hyL
+            have h2 : - B ≤ - |L| := by
+               have : |L| ≤ B := le_max_left _ _
+               exact neg_le_neg this
+            exact le_trans h2 h1
+         have : -B ≤ y n ∧ y n ≤ B := ⟨hnegB_le_y, hy_le_B⟩
+         exact (abs_le).2 this  -- 由 -B ≤ y n ≤ B 得 |y n| ≤ B
+      have hB1_pos : 0 < B + 1 := by linarith [hB0]  -- B ≥ 0 ⇒ B+1 > 0
+      obtain ⟨N, hN⟩ := h (ε / (B + 1)) (by exact div_pos hε hB1_pos)  -- 用 ε/(B+1) 套用 xₙ → 0，得到 N
+      refine ⟨N, ?_⟩  -- 取這個 N 作為收斂到 0 的門檻
+      intro n hn  -- 任取 n ≥ N
+      have hx_small : |x n| < ε / (B + 1) := by
+         simpa [sub_zero] using hN n hn  -- 由 |x n - 0| < ε/(B+1) 得 |x n| < ε/(B+1)
+      have hy_bd : |y n| ≤ B := h_abs_y n  -- 由有界性得 |y n| ≤ B
+      -- 目標：|x n * y n - 0| < ε
+      have h_mul_abs : |x n * y n| < ε := by
+         have hmul : |x n * y n| = |x n| * |y n| := by
+            simp [abs_mul]
+         have h1 : |x n| * |y n| ≤ |x n| * B :=
+            mul_le_mul_of_nonneg_left hy_bd (abs_nonneg (x n))
+         have hB_le : B ≤ B + 1 := by linarith
+         have h2 : |x n| * B ≤ |x n| * (B + 1) :=
+            mul_le_mul_of_nonneg_left hB_le (abs_nonneg (x n))
+         have hne : (B + 1) ≠ 0 := ne_of_gt hB1_pos
+         have hx_mul : |x n| * (B + 1) < ε := by
+            have htmp := (mul_lt_mul_of_pos_right hx_small hB1_pos)
+            have hR : (ε / (B + 1)) * (B + 1) = ε := by
+               field_simp [hne]
+            simpa [hR] using htmp
+         have : |x n| * |y n| < ε := lt_of_le_of_lt (le_trans h1 h2) hx_mul
+         simpa [hmul] using this
+      simpa [sub_zero] using h_mul_abs  -- |x n * y n - 0| = |x n * y n|
+```
+
+### Lean 手法拆解（重點）
+
+- **把「有界」轉成可用的上下界**：`seq_bounded y` 展開成 `bounded (range y)`，再拆成上界 `U` 與下界 `L`。
+- **用 `B := max |L| |U|` 控制絕對值**：先證 `-B ≤ y n ≤ B`，再用 `(abs_le).2` 得 `|y n| ≤ B`。
+- **選擇 \(\delta = \varepsilon/(B+1)\)**：確保分母正且非 0（`hB1_pos`、`hne`）。
+- **乘法界**：
+  - `abs_mul`：`|x*y| = |x|*|y|`
+  - `mul_le_mul_of_nonneg_left`：用 `|y n| ≤ B` 推 `|x|*|y| ≤ |x|*B`
+  - `mul_lt_mul_of_pos_right`：把 `|x| < ε/(B+1)` 乘上正數 `B+1`
+  - `field_simp [hne]`：化簡 `(ε/(B+1))*(B+1)=ε`
+
 ## 後續練習題
 
 （此處將添加更多第一章的練習題）

@@ -1554,4 +1554,392 @@ theorem Theorem_1_20_1 (E : Set ℝ):
          linarith  -- 從 -a ≤ s 得到 -s ≤ a
       exact le_antisymm h1 h2  -- 由 t ≤ -s 且 -s ≤ t，得到 t = -s（反對稱性）
    }
+
+-- Theorem 1.20(2) : E has a infimum iff -E has a supremum, in which case sup(-E) = -inf(E).
+-- 定理 1.20(2)：E 有下確界 ⟺ -E 有上確界，且 sup(-E) = -inf(E)
+
+theorem Theorem_1_20_2 (E : Set ℝ):
+   ((∃ t, is_infimum t E) ↔ (∃ s, is_supremum s (neg_set E))) ∧  -- 第一部分：等價性
+   (∀ t s, is_infimum t E → is_supremum s (neg_set E) → s = -t) := by  -- 第二部分：關係式
+   constructor  -- 分解合取（∧）：需要證明兩個部分
+   {
+      -- 【第一部分】證明等價性：(∃ t, is_infimum t E) ↔ (∃ s, is_supremum s (neg_set E))
+      constructor  -- 分解雙向蘊涵（↔）：需要證明 (⇒) 和 (⇐)
+      {
+         -- 【⇒ 方向】若 E 有下確界 t，則 -E 有上確界 -t
+         intro h  -- 假設：h : ∃ t, is_infimum t E
+         obtain ⟨t, ht⟩ := h  -- 解構存在性：取出下確界 t 和證據 ht : is_infimum t E
+         use -t  -- 聲稱：-t 是 neg_set E 的上確界（需要證明 is_supremum (-t) (neg_set E)）
+         constructor  -- 分解 is_supremum 的定義：(1) -t 是上界 ∧ (2) -t 是最小的上界
+         {
+            -- 【證明 -t 是上界】即證明：∀ x ∈ neg_set E, x ≤ -t
+            intro x hx  -- 任取 x ∈ neg_set E（即 -x ∈ E）
+            have h1 : -x ∈ E := hx  -- 根據 neg_set 的定義，x ∈ neg_set E 意味著 -x ∈ E
+            have h2 : t ≤ -x := ht.1 (-x) h1  -- 因為 t 是 E 的下界，所以 t ≤ -x
+            linarith  -- 線性算術推理：從 t ≤ -x 得到 x ≤ -t
+         }
+         {
+            -- 【證明 -t 是最小的上界】即證明：∀ m, is_upper_bound m (neg_set E) → -t ≤ m
+            intro m hm  -- 任取上界 m（hm : 對所有 x ∈ neg_set E，x ≤ m）
+            have h1 : -m ≤ t := by  -- 先證明 -m ≤ t，然後得到 -t ≤ m
+               apply ht.2  -- 用下確界的性質：若 -m 是 E 的下界，則 -m ≤ t
+               intro a ha  -- 證明 -m 是 E 的下界：任取 a ∈ E，證明 -m ≤ a
+               have h2 : -a ∈ neg_set E := by simp [neg_set]; exact ha  -- 因為 a ∈ E，所以 -a ∈ neg_set E
+               have h3 : -a ≤ m := hm (-a) h2  -- 因為 -a ∈ neg_set E 且 m 是上界，所以 -a ≤ m
+               linarith  -- 從 -a ≤ m 得到 -m ≤ a
+            linarith  -- 從 -m ≤ t 得到 -t ≤ m
+         }
+      }
+      {
+         -- 【⇐ 方向】若 -E 有上確界 s，則 E 有下確界 -s
+         intro h  -- 假設：h : ∃ s, is_supremum s (neg_set E)
+         obtain ⟨s, hs⟩ := h  -- 解構存在性：取出上確界 s 和證據 hs : is_supremum s (neg_set E)
+         use -s  -- 聲稱：-s 是 E 的下確界（需要證明 is_infimum (-s) E）
+         constructor  -- 分解 is_infimum 的定義：(1) -s 是下界 ∧ (2) -s 是最大的下界
+         {
+            -- 【證明 -s 是下界】即證明：∀ x ∈ E, -s ≤ x
+            intro x hx  -- 任取 x ∈ E
+            have h1 : -x ∈ neg_set E := by simp [neg_set]; exact hx  -- 先證明 -x ∈ neg_set E
+            have h2 : -x ≤ s := hs.1 (-x) h1  -- 因為 s 是 neg_set E 的上界，所以 -x ≤ s
+            linarith  -- 從 -x ≤ s 得到 -s ≤ x
+         }
+         {
+            -- 【證明 -s 是最大的下界】即證明：∀ m, is_lower_bound m E → m ≤ -s
+            intro m hm  -- 任取下界 m（hm : 對所有 x ∈ E，m ≤ x）
+            have h1 : -m ≥ s := by  -- 先證明 -m ≥ s（即 s ≤ -m），然後得到 m ≤ -s
+               apply hs.2  -- 用上確界的性質：若 -m 是 neg_set E 的上界，則 s ≤ -m
+               intro y hy  -- 證明 -m 是 neg_set E 的上界：任取 y ∈ neg_set E，證明 y ≤ -m
+               have h2 : -y ∈ E := hy  -- hy : y ∈ neg_set E，根據定義就是 -y ∈ E
+               have h3 : m ≤ -y := hm (-y) h2  -- 因為 -y ∈ E 且 m 是下界，所以 m ≤ -y
+               linarith  -- 從 m ≤ -y 得到 y ≤ -m
+            linarith  -- 從 s ≤ -m 得到 m ≤ -s
+         }
+      }
+   }
+   {
+      -- 【第二部分】證明關係式：若 t 是 E 的下確界，s 是 -E 的上確界，則 s = -t
+      intro t s ht hs  -- 引入 t, s 和假設 ht : is_infimum t E, hs : is_supremum s (neg_set E)
+      -- 策略：用雙向不等式 s ≤ -t 且 -t ≤ s，然後用 le_antisymm 得到 s = -t
+      have h1 : s ≤ -t := by  -- 證明 s ≤ -t
+         apply hs.2  -- 用上確界的性質：若 -t 是 neg_set E 的上界，則 s ≤ -t
+         intro x hx  -- 證明 -t 是 neg_set E 的上界：任取 x ∈ neg_set E，證明 x ≤ -t
+         have h2 : -x ∈ E := hx  -- hx : x ∈ neg_set E，根據定義就是 -x ∈ E
+         have h3 : t ≤ -x := ht.1 (-x) h2  -- 因為 t 是 E 的下界，所以 t ≤ -x
+         linarith  -- 從 t ≤ -x 得到 x ≤ -t
+      have h2 : -t ≤ s := by  -- 證明 -t ≤ s
+         have h3 : -s ≤ t := by  -- 先證明 -s ≤ t（等價於 -t ≤ s）
+            apply ht.2  -- 用下確界的性質：若 -s 是 E 的下界，則 -s ≤ t
+            intro a ha  -- 證明 -s 是 E 的下界：任取 a ∈ E，證明 -s ≤ a
+            have h4 : -a ∈ neg_set E := by simp [neg_set]; exact ha  -- 因為 a ∈ E，所以 -a ∈ neg_set E
+            have h5 : -a ≤ s := hs.1 (-a) h4  -- 因為 -a ∈ neg_set E 且 s 是上界，所以 -a ≤ s
+            linarith  -- 從 -a ≤ s 得到 -s ≤ a
+         linarith  -- 從 -s ≤ t 得到 -t ≤ s
+      exact le_antisymm h1 h2  -- 由 s ≤ -t 且 -t ≤ s，得到 s = -t（反對稱性）
+   }
+
+-- Theorem 1.21 : Suppoes that A ⊆ B are nonempty subsets of ℝ.
+-- (1) If B has a supremum, then sup(A) ≤ sup(B)
+-- 定理 1.21(1)：若 A ⊆ B，則 sup(A) ≤ sup(B)
+theorem Theorem_1_21_1 (A B : Set ℝ) (hA_sub_B : A ⊆ B) :
+   ∀ s t, is_supremum s B → is_supremum t A → t ≤ s := by  -- 若 s = sup B，t = sup A，則 t ≤ s
+   intro s t hs ht  -- 引入上確界 s, t 和假設 hs : is_supremum s B, ht : is_supremum t A
+   -- 【策略】用 t 的最小性：只需證明 s 是 A 的上界
+   apply ht.2  -- 用上確界 t 的最小性：若 s 是 A 的上界，則 t ≤ s
+   -- 【證明 s 是 A 的上界】即證明：∀ a ∈ A, a ≤ s
+   intro a ha  -- 任取 a ∈ A
+   have ha_in_B : a ∈ B := hA_sub_B ha  -- 因為 A ⊆ B 且 a ∈ A，所以 a ∈ B
+   exact hs.1 a ha_in_B  -- 因為 s 是 B 的上界且 a ∈ B，所以 a ≤ s（用 hs.1：上界性質）
+
+-- (2) If B has a infimum, then inf(A) ≥ inf(B)
+-- 定理 1.21(2)：若 A ⊆ B，則 inf(B) ≤ inf(A)（注意方向與上確界相反）
+theorem Theorem_1_21_2 (A B : Set ℝ) (hA_sub_B : A ⊆ B) :
+   ∀ t s, is_infimum s B → is_infimum t A → s ≤ t := by  -- 若 s = inf B，t = inf A，則 s ≤ t
+   intro t s ht hs  -- 引入下確界 t, s 和假設 ht : is_infimum s B, hs : is_infimum t A
+   -- 【策略】用 t 的最大性：只需證明 s 是 A 的下界
+   apply hs.2  -- 用下確界 t 的最大性：若 s 是 A 的下界，則 s ≤ t（hs 對應 is_infimum t A）
+   -- 【證明 s 是 A 的下界】即證明：∀ a ∈ A, s ≤ a
+   intro a ha  -- 任取 a ∈ A
+   have ha_in_B : a ∈ B := hA_sub_B ha  -- 因為 A ⊆ B 且 a ∈ A，所以 a ∈ B
+   exact ht.1 a ha_in_B  -- 因為 s 是 B 的下界且 a ∈ B，所以 s ≤ a（用 ht.1：下界性質）
+
+/-
+## 1.38 Definition：有限集合與可數集合
+
+定義 1.38（Wade）：設 E 為集合。
+
+i) E 稱為 **finite**（有限）：
+   當且僅當 E = ∅ 或存在 1-1 函數從 {1, 2, ..., n} 到 E（對某個 n ∈ ℕ）
+
+ii) E 稱為 **countable**（可數）：
+   當且僅當存在 1-1 函數從 ℕ 到 E
+
+iii) E 稱為 **at most countable**（至多可數）：
+   當且僅當 E 是有限的或可數的
+
+iv) E 稱為 **uncountable**（不可數）：
+   當且僅當 E 既非有限也非可數
+
+### 重要例子
+
+**有限集合**：
+- {1, 2, 3}
+- 任何 n 個元素的集合
+
+**可數集合（可數無窮）**：
+- ℕ（自然數）
+- ℤ（整數）
+- ℚ（有理數）← 令人驚訝！
+
+**不可數集合**：
+- ℝ（實數）← Cantor 對角線論證
+- [0, 1]（閉區間）
+- (0, 1)（開區間）
+
+### 注意事項
+
+在 Lean 的 Mathlib 中，這些概念有內建定義，但具體的 API 可能因版本而異。
+本教材主要關注數學概念的理解，具體的形式化證明可以參考最新的 Mathlib 文檔。
+
+關鍵定理（留待後續證明）：
+1. 有理數 ℚ 是可數的（Cantor 對角線排列）
+2. 實數 ℝ 是不可數的（Cantor 對角線論證）
+3. 可數多個可數集合的並集仍是可數的
+-/
+
+-- 1.39 Remark. [CANTOR'S DIAGONALIZATION ARGUMENT]
+-- The open interval (0, 1) is uncountable.
+-- 備註：完整的形式化證明需要實數的十進制表示理論，
+-- 這超出了本課程的範圍。我們將此定理作為公理。
+
+axiom Cantor_Diagonalization : ¬∃ f : ℕ → Set.Ioo (0 : ℝ) 1, Function.Surjective f
+
+/-
+## 2.7 Definition：數列的有界性
+
+設 {xₙ} 為實數數列（即函數 x : ℕ → ℝ）。
+-/
+
+-- i) 數列上方有界（bounded above）
+def seq_bounded_above (x : ℕ → ℝ) : Prop :=
+  bounded_above (Set.range x)
+
+-- ii) 數列下方有界（bounded below）
+def seq_bounded_below (x : ℕ → ℝ) : Prop :=
+  bounded_below (Set.range x)
+
+-- iii) 數列有界（bounded）
+def seq_bounded (x : ℕ → ℝ) : Prop :=
+  bounded (Set.range x)
+
+-- 等價形式：數列有界 ⟺ 既上方有界又下方有界
+theorem seq_bounded_iff (x : ℕ → ℝ) :
+    seq_bounded x ↔ seq_bounded_above x ∧ seq_bounded_below x := by
+  unfold seq_bounded seq_bounded_above seq_bounded_below bounded
+  rfl
+
+-- 2.1 Definition：收斂（ε–N 定義）
+def converge_to (x : ℕ → ℝ) (a : ℝ) : Prop :=  -- xₙ → a
+  ∀ ε > 0, ∃ N : ℕ, ∀ n : ℕ, n ≥ N → |x n - a| < ε  -- ∀ ε > 0, ∃ N, n ≥ N ⇒ |xₙ - a| < ε
+
+-- 輔助引理：有限集合有上界（用 max' 取最大值）
+lemma finite_set_has_upper_bound (s : Finset ℝ) (hs : s.Nonempty) :  -- s 非空
+    ∃ M, ∀ x ∈ s, x ≤ M := by  -- 存在 M 使得 ∀ x ∈ s, x ≤ M
+  use s.max' hs  -- 取 M = s 的最大元素
+  intro x hx  -- 任取 x ∈ s
+  exact Finset.le_max' s x hx  -- 由 max' 的性質得 x ≤ max'
+
+-- Theorem 2.8 : Every convergent sequence is bounded.
+theorem Theorem_2_8 (x : ℕ → ℝ) (a : ℝ) (h : converge_to x a) : seq_bounded x := by
+   unfold seq_bounded bounded bounded_above bounded_below  -- 展開數列有界與集合有界的定義
+   constructor  -- 分成上方有界與下方有界兩部分
+   {
+      -- 【上方有界】證明 bounded_above (Set.range x)
+      obtain ⟨N, hN⟩ := h 1 (by norm_num : (0 : ℝ) < 1)  -- 取 ε = 1 得到尾部估計：n ≥ N ⇒ |x n - a| < 1
+
+      have h_tail : ∀ n ≥ N, x n ≤ a + 1 := by  -- 尾部上界：n ≥ N ⇒ x n ≤ a + 1
+        intro n hn  -- 任取 n ≥ N
+        have h_conv : |x n - a| < 1 := hN n hn  -- 由收斂性得到 |x n - a| < 1
+        have h_parts := abs_sub_lt_iff.mp h_conv  -- 轉成 (x n - a < 1) ∧ (a - x n < 1)
+        linarith  -- 從不等式推出 x n ≤ a + 1
+
+      by_cases h_case : N = 0  -- 分情況：N = 0 或 N > 0
+      · use a + 1  -- 若 N = 0，整個序列都在尾部，直接取上界 a + 1
+        intro y hy  -- 任取 y ∈ range x
+        obtain ⟨n, rfl⟩ := hy  -- 由 range 的定義，y = x n
+        have : n ≥ N := by  -- 需要餵給 h_tail 的條件 n ≥ N
+          simp [h_case]  -- N = 0 時等價於 n ≥ 0
+        exact h_tail n this  -- 由尾部上界得到 x n ≤ a + 1
+      · let head_set := Finset.image x (Finset.range N)  -- 頭部有限集合：{x 0, x 1, ..., x (N-1)}
+
+        have h_nonempty : head_set.Nonempty := by  -- 證明頭部集合非空（因為 N > 0）
+          use x 0  -- 見證元素 x 0
+          simp [head_set]  -- 展開 image / range 的會員條件
+          use 0  -- 令 index = 0
+          constructor
+          · exact Nat.pos_of_ne_zero h_case  -- N ≠ 0 ⇒ 0 < N，所以 0 ∈ range N
+          · rfl  -- x 0 = x 0
+
+        obtain ⟨M_head, hM_head⟩ := finite_set_has_upper_bound head_set h_nonempty  -- 取頭部上界 M_head
+
+        use max (a + 1) M_head  -- 整體上界取 max(尾部上界, 頭部上界)
+
+        intro y hy  -- 任取 y ∈ range x
+        obtain ⟨n, rfl⟩ := hy  -- 由 range 的定義，y = x n
+
+        rcases lt_or_ge n N with hn | hn  -- 分情況：n < N（頭部）或 n ≥ N（尾部）
+        · have h_in : x n ∈ head_set := by  -- 先證明 x n ∈ 頭部集合
+            simp [head_set]  -- 展開 image / range
+            refine ⟨n, hn, rfl⟩  -- 提供見證 n，並給出 n < N 與 x n = x n
+          -- 頭部：x n ≤ M_head ≤ max (a+1) M_head
+          exact le_trans (hM_head (x n) h_in) (le_max_right (a + 1) M_head)
+        · -- 尾部：x n ≤ a+1 ≤ max (a+1) M_head
+          exact le_trans (h_tail n hn) (le_max_left (a + 1) M_head)
+   }
+   {
+      -- 【下方有界】證明 bounded_below (Set.range x)（與上方有界完全對稱）
+      obtain ⟨N, hN⟩ := h 1 (by norm_num : (0 : ℝ) < 1)  -- 同樣取 ε = 1
+
+      have h_tail : ∀ n ≥ N, a - 1 ≤ x n := by  -- 尾部下界：n ≥ N ⇒ a - 1 ≤ x n
+        intro n hn  -- 任取 n ≥ N
+        have h_conv : |x n - a| < 1 := hN n hn  -- |x n - a| < 1
+        have h_parts := abs_sub_lt_iff.mp h_conv  -- (x n - a < 1) ∧ (a - x n < 1)
+        linarith  -- 推出 a - 1 ≤ x n
+
+      by_cases h_case : N = 0  -- 分情況：N = 0 或 N > 0
+      · use a - 1  -- 若 N = 0，整個序列都在尾部，直接取下界 a - 1
+        intro y hy  -- 任取 y ∈ range x
+        obtain ⟨n, rfl⟩ := hy  -- y = x n
+        have : n ≥ N := by  -- n ≥ 0
+          simp [h_case]
+        exact h_tail n this  -- 得到 a - 1 ≤ x n
+      · let head_set := Finset.image x (Finset.range N)  -- 頭部有限集合
+
+        have h_nonempty : head_set.Nonempty := by  -- 頭部非空（N > 0）
+          use x 0
+          simp [head_set]
+          use 0
+          constructor
+          · exact Nat.pos_of_ne_zero h_case
+          · rfl
+
+        have h_has_min : ∃ m, ∀ x_val ∈ head_set, m ≤ x_val := by  -- 頭部有下界（用 min'）
+          use head_set.min' h_nonempty  -- 取 m = 最小元素
+          intro x_val hx  -- 任取 x_val ∈ head_set
+          exact Finset.min'_le head_set x_val hx  -- min' ≤ x_val
+
+        obtain ⟨m_head, hm_head⟩ := h_has_min  -- 取頭部下界 m_head
+
+        use min (a - 1) m_head  -- 整體下界取 min(尾部下界, 頭部下界)
+
+        intro y hy  -- 任取 y ∈ range x
+        obtain ⟨n, rfl⟩ := hy  -- y = x n
+
+        rcases lt_or_ge n N with hn | hn  -- n < N（頭部）或 n ≥ N（尾部）
+        · have h_in : x n ∈ head_set := by  -- x n ∈ 頭部
+            simp [head_set]
+            refine ⟨n, hn, rfl⟩
+          -- 頭部：min (a-1) m_head ≤ m_head ≤ x n
+          exact le_trans (min_le_right (a - 1) m_head) (hm_head (x n) h_in)
+        · -- 尾部：min (a-1) m_head ≤ a-1 ≤ x n
+          exact le_trans (min_le_left (a - 1) m_head) (h_tail n hn)
+   }
+
+-- Theorem 2.9 [Squeeze Theorem] : Suppose that {x_n}, {y_n}, and {w_n} are real sequences.
+-- (i) If x_n → a and y_n → a (the same a) as n → ∞, and if there is an N₀ ∈ ℕ such that
+-- x_n ≤ w_n ≤ y_n for n ≥ Nₒ, then w_n → a as n → ∞.
+theorem Theorem_2_9_i (x y w : ℕ → ℝ) (a : ℝ)
+   (hx : converge_to x a) (hy : converge_to y a)  -- 假設：xₙ → a 且 yₙ → a
+   (hxy : ∃ N₀ : ℕ, ∀ (n : ℕ), n ≥ N₀ → x n ≤ w n ∧ w n ≤ y n) :  -- 假設：存在 N₀，使得 n ≥ N₀ 時 xₙ ≤ wₙ ≤ yₙ
+   converge_to w a := by  -- 目標：wₙ → a
+   unfold converge_to  -- 展開收斂定義：∀ ε > 0, ∃ N, ∀ n ≥ N, |w n - a| < ε
+   intro ε hε  -- 任取 ε > 0
+   obtain ⟨Nx, hNx⟩ := hx ε hε  -- 由 xₙ → a 得到 Nx：n ≥ Nx ⇒ |x n - a| < ε
+   obtain ⟨Ny, hNy⟩ := hy ε hε  -- 由 yₙ → a 得到 Ny：n ≥ Ny ⇒ |y n - a| < ε
+   obtain ⟨N₀, hN₀⟩ := hxy  -- 由夾擠條件取出 N₀：n ≥ N₀ ⇒ x n ≤ w n ∧ w n ≤ y n
+   refine ⟨max (max Nx Ny) N₀, ?_⟩  -- 取 N = max(max Nx Ny) N₀，同時滿足三個門檻
+   intro n hn  -- 任取 n ≥ N
+   have hn_max : n ≥ max Nx Ny := le_trans (le_max_left _ _) hn  -- 由 n ≥ max(max Nx Ny) N₀ 得 n ≥ max Nx Ny
+   have hnNx : n ≥ Nx := le_trans (le_max_left _ _) hn_max  -- 由 n ≥ max Nx Ny 得 n ≥ Nx
+   have hnNy : n ≥ Ny := le_trans (le_max_right _ _) hn_max  -- 由 n ≥ max Nx Ny 得 n ≥ Ny
+   have hnN₀ : n ≥ N₀ := le_trans (le_max_right _ _) hn  -- 由 n ≥ max(max Nx Ny) N₀ 得 n ≥ N₀
+   have hw : x n ≤ w n ∧ w n ≤ y n := hN₀ n hnN₀  -- 由夾擠條件得到 x n ≤ w n 且 w n ≤ y n
+   apply (abs_sub_lt_iff).2  -- 將 |w n - a| < ε 改寫成 (w n - a < ε) ∧ (a - w n < ε)
+   constructor  -- 分成兩個不等式：w n - a < ε 與 a - w n < ε
+   {
+      -- 【第一個目標】證明 w n - a < ε（用 w n ≤ y n 與 y n → a）
+      have hy_abs : |y n - a| < ε := hNy n hnNy  -- 由 n ≥ Ny 得 |y n - a| < ε
+      have hy_lt : y n - a < ε := (abs_sub_lt_iff.mp hy_abs).1  -- 由 |y n - a| < ε 取出 y n - a < ε
+      have hw_le : w n - a ≤ y n - a := sub_le_sub_right hw.2 a  -- 由 w n ≤ y n 推出 w n - a ≤ y n - a
+      exact lt_of_le_of_lt hw_le hy_lt  -- 串接：w n - a ≤ y n - a < ε
+   }
+   {
+      -- 【第二個目標】證明 a - w n < ε（用 x n ≤ w n 與 x n → a）
+      have hx_abs : |x n - a| < ε := hNx n hnNx  -- 由 n ≥ Nx 得 |x n - a| < ε
+      have hx_lt : a - x n < ε := (abs_sub_lt_iff.mp hx_abs).2  -- 由 |x n - a| < ε 取出 a - x n < ε
+      have hw_ge : a - w n ≤ a - x n := sub_le_sub_left hw.1 a  -- 由 x n ≤ w n 推出 a - w n ≤ a - x n
+      exact lt_of_le_of_lt hw_ge hx_lt  -- 串接：a - w n ≤ a - x n < ε
+   }
+
+-- (ii) If x_n → 0 as n → ∞ and {y_n} is bounded, then x_n y_n → 0 as n → ∞.
+theorem Theorem_2_9_ii (x y : ℕ → ℝ) (h : converge_to x 0) (hy : seq_bounded y) :
+   converge_to (fun n => x n * y n) 0 := by  -- 目標：xₙ → 0 且 y 有界 ⇒ (xₙ*yₙ) → 0
+      unfold converge_to  -- 展開收斂定義
+      intro ε hε  -- 任取 ε > 0
+      have hy' : bounded (Set.range y) := by
+         -- seq_bounded y 的定義就是 bounded (Set.range y)
+         simpa [seq_bounded] using hy
+      have hy_above : bounded_above (Set.range y) := hy'.1  -- y 的值域有上界
+      have hy_below : bounded_below (Set.range y) := hy'.2  -- y 的值域有下界
+      obtain ⟨U, hU⟩ := hy_above  -- 取上界 U：∀ z ∈ range y, z ≤ U
+      obtain ⟨L, hL⟩ := hy_below  -- 取下界 L：∀ z ∈ range y, L ≤ z
+      -- 定義 B，並證明 ∀ n, |y n| ≤ B
+      let B : ℝ := max |L| |U|  -- 取 B = max(|L|,|U|)，用來控制 |y n|
+      have hB0 : 0 ≤ B := by
+         have : 0 ≤ |L| := abs_nonneg L
+         exact le_trans this (le_max_left _ _)
+      have h_abs_y : ∀ n : ℕ, |y n| ≤ B := by
+         intro n
+         have hyU : y n ≤ U := hU (y n) ⟨n, rfl⟩  -- 由上界性質得 y n ≤ U
+         have hyL : L ≤ y n := hL (y n) ⟨n, rfl⟩  -- 由下界性質得 L ≤ y n
+         have hy_le_B : y n ≤ B := by
+            have : y n ≤ |U| := le_trans hyU (le_abs_self U)
+            exact le_trans this (le_max_right _ _)
+         have hnegB_le_y : -B ≤ y n := by
+            have : - |L| ≤ L := neg_abs_le L
+            have h1: - |L| ≤ y n := le_trans this hyL
+            have h2: - B ≤ - |L| := by
+               have : |L| ≤ B := le_max_left _ _
+               exact neg_le_neg this
+            exact le_trans h2 h1
+         have : -B ≤ y n ∧ y n ≤ B := ⟨hnegB_le_y, hy_le_B⟩
+         exact (abs_le).2 this  -- 由 -B ≤ y n ≤ B 得 |y n| ≤ B
+      have hB1_pos : 0 < B + 1 := by linarith [hB0]  -- B ≥ 0 ⇒ B+1 > 0
+      obtain ⟨N, hN⟩ := h (ε / (B + 1)) (by exact div_pos hε hB1_pos)  -- 用 ε/(B+1) 套用 xₙ → 0，得到 N
+      refine ⟨N, ?_⟩  -- 取這個 N 作為收斂到 0 的門檻
+      intro n hn  -- 任取 n ≥ N
+      have hx_small : |x n| < ε / (B + 1) := by
+         simpa [sub_zero] using hN n hn  -- 由 |x n - 0| < ε/(B+1) 得 |x n| < ε/(B+1)
+      have hy_bd : |y n| ≤ B := h_abs_y n  -- 由有界性得 |y n| ≤ B
+      -- 目標：|x n * y n - 0| < ε
+      have h_mul_abs : |x n * y n| < ε := by
+         have hmul : |x n * y n| = |x n| * |y n| := by
+            simp [abs_mul]
+         have h1 : |x n| * |y n| ≤ |x n| * B :=
+            mul_le_mul_of_nonneg_left hy_bd (abs_nonneg (x n))
+         have hB_le : B ≤ B + 1 := by linarith
+         have h2 : |x n| * B ≤ |x n| * (B + 1) :=
+            mul_le_mul_of_nonneg_left hB_le (abs_nonneg (x n))
+         have hne : (B + 1) ≠ 0 := ne_of_gt hB1_pos
+         have hx_mul : |x n| * (B + 1) < ε := by
+            have htmp := (mul_lt_mul_of_pos_right hx_small hB1_pos)
+            -- 右邊化簡：(ε/(B+1))*(B+1) = ε
+            have hR : (ε / (B + 1)) * (B + 1) = ε := by
+               field_simp [hne]
+            simpa [hR] using htmp
+         -- 串接 ≤ ≤ < 得 <
+         have : |x n| * |y n| < ε := lt_of_le_of_lt (le_trans h1 h2) hx_mul
+         -- 回到 |x n * y n|
+         simpa [hmul] using this
+      simpa [sub_zero] using h_mul_abs  -- |x n * y n - 0| = |x n * y n|
+
 end WadeAnalysis
