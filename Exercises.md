@@ -6374,6 +6374,380 @@ theorem Theorem_2_9_ii (x y : ℕ → ℝ) (h : converge_to x 0) (hy : seq_bound
   - `mul_lt_mul_of_pos_right`：把 `|x| < ε/(B+1)` 乘上正數 `B+1`
   - `field_simp [hne]`：化簡 `(ε/(B+1))*(B+1)=ε`
 
+---
+
+## 定理 2.12(i)：極限的線性性（加法）
+
+### 定理敘述
+
+若 \(x_n \to a\) 且 \(y_n \to b\)，則
+\[
+\lim_{n\to\infty}(x_n+y_n)=a+b.
+\]
+
+### 完整數學證明（逐步，ε–N）
+
+取任意 \(\varepsilon>0\)。令 \(\varepsilon/2>0\)。
+
+1. 因 \(x_n \to a\)，存在 \(N_x\) 使得 \(n\ge N_x \Rightarrow |x_n-a|<\varepsilon/2\)。
+2. 因 \(y_n \to b\)，存在 \(N_y\) 使得 \(n\ge N_y \Rightarrow |y_n-b|<\varepsilon/2\)。
+3. 令 \(N=\max(N_x,N_y)\)。則 \(n\ge N \Rightarrow n\ge N_x\) 且 \(n\ge N_y\)。
+
+對任意 \(n\ge N\)，利用三角不等式：
+\[
+|(x_n+y_n)-(a+b)|
+=|(x_n-a)+(y_n-b)|
+\le |x_n-a|+|y_n-b|
+<\frac{\varepsilon}{2}+\frac{\varepsilon}{2}
+=\varepsilon.
+\]
+
+因此依 ε–N 定義，\(x_n+y_n \to a+b\)，證畢。
+
+### Lean 證明（行尾註解風格）
+
+```lean
+theorem Theorem_2_12_i (x y : ℕ → ℝ) (a b : ℝ)
+   (hx : converge_to x a) (hy : converge_to y b) :  -- 假設：xₙ → a 且 yₙ → b
+   converge_to (fun n => x n + y n) (a + b) := by  -- 目標：(xₙ + yₙ) → (a + b)
+   unfold converge_to  -- 展開收斂定義
+   intro ε hε  -- 任取 ε > 0
+   have hε2 : ε / 2 > 0 := by
+      have : (0 : ℝ) < 2 := by norm_num
+      exact div_pos hε this
+   obtain ⟨Nx, hNx⟩ := hx (ε / 2) hε2  -- x 的 ε/2–N
+   obtain ⟨Ny, hNy⟩ := hy (ε / 2) hε2  -- y 的 ε/2–N
+   refine ⟨max Nx Ny, ?_⟩  -- 取共同門檻 N = max Nx Ny
+   intro n hn
+   have hnNx : n ≥ Nx := le_trans (le_max_left _ _) hn
+   have hnNy : n ≥ Ny := le_trans (le_max_right _ _) hn
+   have hxε : |x n - a| < ε / 2 := hNx n hnNx
+   have hyε : |y n - b| < ε / 2 := hNy n hnNy
+   have htriangle :
+      |(x n + y n) - (a + b)| ≤ |x n - a| + |y n - b| := by
+      have : (x n + y n) - (a + b) = (x n - a) + (y n - b) := by ring
+      simpa [this] using abs_add_le (x n - a) (y n - b)
+   have hsum : |x n - a| + |y n - b| < ε := by
+      have : |x n - a| + |y n - b| < ε / 2 + ε / 2 := add_lt_add hxε hyε
+      simpa [add_halves] using this
+   exact lt_of_le_of_lt htriangle hsum
+```
+
+### Lean 語法與手法（更細）
+
+- **`unfold converge_to`**：把目標改成 ε–N 型式。
+- **`have hε2 : ε/2 > 0`**：為了能把 ε/2 套進 `hx`、`hy` 的定義。
+- **`obtain ⟨Nx, hNx⟩ := hx (ε/2) hε2`**：從「存在 \(N_x\)」取出門檻與尾部估計。
+- **`refine ⟨max Nx Ny, ?_⟩`**：用 `max` 合併兩個門檻。
+- **`abs_add_le`**：三角不等式 `|u+v| ≤ |u| + |v|`。
+- **`ring`**：把 `(x+y)-(a+b)` 改寫成 `(x-a)+(y-b)`，讓 `abs_add_le` 能直接套用。
+- **`add_halves`**：化簡 `ε/2 + ε/2 = ε`。
+
+---
+
+## 定理 2.12(ii)：極限的線性性（常數倍）
+
+### 定理敘述
+
+若 \(x_n \to a\) 且 \(\alpha \in \mathbb{R}\)，則
+\[
+\lim_{n\to\infty}(\alpha x_n)=\alpha a.
+\]
+
+### 完整數學證明（逐步，ε–N）
+
+取任意 \(\varepsilon>0\)。分兩種情況：
+
+#### 情況 1：\(\alpha=0\)
+
+此時 \(\alpha x_n = 0\) 對所有 \(n\)，所以 \(\alpha x_n \to 0 = \alpha a\) 顯然成立。
+
+#### 情況 2：\(\alpha\ne 0\)
+
+此時 \(|\alpha|>0\)。令
+\[
+\delta := \frac{\varepsilon}{|\alpha|} > 0.
+\]
+由 \(x_n \to a\)，存在 \(N\) 使得 \(n\ge N \Rightarrow |x_n-a|<\delta\)。
+
+當 \(n\ge N\) 時：
+\[
+|\alpha x_n-\alpha a|
+=|\alpha(x_n-a)|
+=|\alpha|\cdot|x_n-a|
+<|\alpha|\cdot\frac{\varepsilon}{|\alpha|}
+=\varepsilon.
+\]
+因此 \(\alpha x_n \to \alpha a\)，證畢。
+
+### Lean 證明（行尾註解風格）
+
+```lean
+theorem Theorem_2_12_ii (x : ℕ → ℝ) (α : ℝ) (a : ℝ) (hx : converge_to x a) :  -- 假設：xₙ → a
+   converge_to (fun n => α * x n) (α * a) := by  -- 目標：(α*xₙ) → (α*a)
+   unfold converge_to  -- 展開收斂定義
+   intro ε hε  -- 任取 ε > 0
+   by_cases hα : α = 0  -- 分情況：α = 0 或 α ≠ 0
+   {
+      subst hα  -- 用 α = 0 改寫所有目標
+      refine ⟨0, ?_⟩  -- 任何 N 都可，取 N = 0
+      intro n hn  -- 任取 n ≥ 0
+      simpa using hε  -- 目標化簡成 0 < ε，正好是 hε
+   }
+   {
+      have hαpos : 0 < |α| := abs_pos.mpr hα  -- α ≠ 0 ⇒ |α| > 0
+      obtain ⟨N, hN⟩ := hx (ε / |α|) (by exact div_pos hε hαpos)  -- 對 ε/|α| 套用 xₙ → a，得到 N
+      refine ⟨N, ?_⟩  -- 取這個 N
+      intro n hn  -- 任取 n ≥ N
+      have hxδ : |x n - a| < ε / |α| := hN n hn  -- 得到 |x n - a| < ε/|α|
+      have hαne : |α| ≠ 0 := ne_of_gt hαpos  -- |α| ≠ 0（供除法化簡）
+      have habs_mul : |α * (x n - a)| < ε := by  -- 證明 |α*(x n - a)| < ε
+         have hmul : |α| * |x n - a| < |α| * (ε / |α|) :=  -- 兩邊同乘 |α|（正數）
+            mul_lt_mul_of_pos_left hxδ hαpos
+         have hR : |α| * (ε / |α|) = ε := by  -- 化簡 |α|*(ε/|α|) = ε
+            calc
+              |α| * (ε / |α|) = (ε / |α|) * |α| := by simp [mul_comm]
+              _ = (ε * |α|) / |α| := by simp [div_mul_eq_mul_div]
+              _ = ε := by simpa using (mul_div_cancel_right₀ ε hαne)
+         have habs : |α * (x n - a)| = |α| * |x n - a| := abs_mul α (x n - a)  -- |α*(x n-a)| = |α|*|x n-a|
+         have : |α * (x n - a)| < |α| * (ε / |α|) := lt_of_eq_of_lt habs hmul  -- 把左邊改寫成 |α*(x n-a)|
+         simpa [hR] using this  -- 再把右邊改成 ε
+      have hrewrite : α * x n - α * a = α * (x n - a) := by ring  -- 代數改寫：α*x n - α*a = α*(x n-a)
+      simpa [hrewrite] using habs_mul  -- 改寫後直接套用 habs_mul
+   }
+```
+
+### Lean 語法與手法（更細）
+
+- **`by_cases hα : α = 0`**：把 \(\alpha=0\) 的平凡情況獨立處理，避免除以 \(|\alpha|\) 的問題。
+- **`abs_pos.mpr hα` / `ne_of_gt`**：把 \(\alpha\ne 0\) 轉成 \(|\alpha|>0\) 以及 \(|\alpha|\ne 0\)。
+- **選 \(\delta = \varepsilon/|\alpha|\)**：對應數學證明的關鍵選擇。
+- **`mul_lt_mul_of_pos_left`**：把 `|x n - a| < ε/|α|` 兩邊同乘正數 `|α|`。
+- **`abs_mul`**：把 `|α*(x n-a)|` 改寫成 `|α|*|x n-a|`，用來和前一步的乘法不等式接軌。
+- **`mul_div_cancel_right₀`**：化簡 `(|α|*ε)/|α| = ε`（需要 \(|α|\ne 0\)）。
+- **`ring`**：把 `α*x n - α*a` 改寫成 `α*(x n-a)`，讓 `abs_mul` 能直接套用。
+
+---
+
+## 定理 2.12(iii)：極限的乘法性（乘法）
+
+### 定理敘述
+
+若 \(x_n \to a\) 且 \(y_n \to b\)，則
+\[
+\lim_{n\to\infty}(x_n y_n)=ab.
+\]
+
+### 完整數學證明（逐步，ε–N）
+
+關鍵代數分解（恆等式）：
+\[
+x_ny_n-ab = x_n(y_n-b)+b(x_n-a).
+\]
+
+取任意 \(\varepsilon>0\)。我們要證 \(|x_ny_n-ab|<\varepsilon\) 在 \(n\) 夠大時成立。
+
+1. 因 \(y_n\to b\)，可得 \((y_n-b)\to 0\)。
+2. 因 \(x_n\to a\)，由定理 2.8（收斂 ⇒ 有界）可知 \(\{x_n\}\) 有界。
+   因此由定理 2.9(ii)（「→0 × 有界 ⇒ →0」），得到
+   \[
+   x_n(y_n-b)\to 0.
+   \]
+3. 同理 \(x_n\to a\) 推出 \((x_n-a)\to 0\)，再用定理 2.12(ii)（常數倍極限）得
+   \[
+   b(x_n-a)\to 0.
+   \]
+4. 由定理 2.12(i)（加法極限），兩個趨 0 的數列相加仍趨 0：
+   \[
+   x_n(y_n-b)+b(x_n-a)\to 0.
+   \]
+5. 最後用上面的代數恆等式把目標 \(|x_ny_n-ab|\) 改寫成
+   \[
+   |x_n(y_n-b)+b(x_n-a)|
+   \]
+   即可得到收斂到 0，等價於 \(x_ny_n\to ab\)。
+
+### Lean 證明（行尾註解風格）
+
+```lean
+theorem Theorem_2_12_iii (x y : ℕ → ℝ) (a b : ℝ) (hx : converge_to x a) (hy : converge_to y b) :  -- 假設：xₙ → a 且 yₙ → b
+   converge_to (fun n => x n * y n) (a * b) := by  -- 目標：xₙyₙ → ab
+   -- 【策略】代數分解：xₙyₙ - ab = xₙ(yₙ - b) + b(xₙ - a)，再證右邊兩項都 → 0，最後用加法極限定理合併
+   unfold converge_to  -- 展開收斂定義
+   intro ε hε  -- 任取 ε > 0
+   have hx_bd : seq_bounded x := Theorem_2_8 x a hx  -- 由定理 2.8：收斂 ⇒ 有界，得到 x 有界
+   have hy0 : converge_to (fun n => y n - b) 0 := by  -- 證明 (yₙ - b) → 0
+      unfold converge_to
+      intro δ hδ
+      obtain ⟨N, hN⟩ := hy δ hδ
+      refine ⟨N, ?_⟩
+      intro n hn
+      simpa [sub_eq_add_neg, sub_zero, sub_sub] using hN n hn
+   have hprod1' : converge_to (fun n => (y n - b) * x n) 0 :=  -- (y-b)→0 且 x 有界 ⇒ (y-b)*x → 0
+      Theorem_2_9_ii (fun n => y n - b) x hy0 hx_bd
+   have hprod1 : converge_to (fun n => x n * (y n - b)) 0 := by  -- 換回 x*(y-b)（乘法交換）
+      simpa [mul_comm] using hprod1'
+   have hx0 : converge_to (fun n => x n - a) 0 := by  -- 證明 (xₙ - a) → 0
+      unfold converge_to
+      intro δ hδ
+      obtain ⟨N, hN⟩ := hx δ hδ
+      refine ⟨N, ?_⟩
+      intro n hn
+      simpa [sub_zero] using hN n hn
+   have hprod2 : converge_to (fun n => b * (x n - a)) 0 := by  -- b*(x-a) → 0（常數倍）
+      simpa using (Theorem_2_12_ii (fun n => x n - a) b 0 hx0)
+   have hsum0 : converge_to (fun n => x n * (y n - b) + b * (x n - a)) (0 + 0) :=  -- 兩個 →0 的和 → 0
+      Theorem_2_12_i (fun n => x n * (y n - b)) (fun n => b * (x n - a)) 0 0 hprod1 hprod2
+   have hsum0' : converge_to (fun n => x n * (y n - b) + b * (x n - a)) 0 := by
+      simpa using hsum0
+   have hwrite : ∀ n, x n * y n - a * b = x n * (y n - b) + b * (x n - a) := by
+      intro n
+      ring
+   obtain ⟨N, hN⟩ := hsum0' ε hε
+   refine ⟨N, ?_⟩
+   intro n hn
+   have hsmall : |x n * (y n - b) + b * (x n - a)| < ε := by
+      simpa [sub_zero] using hN n hn
+   have hrew : x n * y n - a * b = x n * (y n - b) + b * (x n - a) := hwrite n
+   simpa [hrew] using hsmall
+```
+
+### Lean 手法拆解（更細）
+
+- **核心改寫**：用 `ring` 建立恆等式 `x n * y n - a*b = x n*(y n - b) + b*(x n - a)`。
+- **把收斂轉成「→0」**：
+  - `hy0`：由 `hy` 推出 `(y-b)→0`
+  - `hx0`：由 `hx` 推出 `(x-a)→0`
+- **兩個關鍵輔助定理**：
+  - `Theorem_2_8`：收斂 ⇒ 有界（用於得到 `seq_bounded x`）
+  - `Theorem_2_9_ii`：`(→0) × (有界) ⇒ →0`（用於 `x*(y-b)→0`，注意參數順序）
+- **線性性合併**：
+  - `Theorem_2_12_ii`：常數倍保持收斂（`b*(x-a)→0`）
+  - `Theorem_2_12_i`：兩個趨 0 的和仍趨 0
+- **最後一步**：
+  - `obtain ⟨N, hN⟩ := hsum0' ε hε` 取得門檻
+  - `simpa [sub_zero]` 去掉 `-0`
+  - `simpa [hrew]` 把目標換成已經控制住的那個序列
+
+---
+
+## 定理 2.12(iv)：極限的除法（分母極限非零）
+
+### 定理敘述
+
+若 \(x_n \to a\)、\(y_n \to b\)，且 \(y_n \neq 0\)（對所有 \(n\)）且 \(b \neq 0\)，則
+\[
+\lim_{n\to\infty}\frac{x_n}{y_n}=\frac{a}{b}.
+\]
+
+### 完整數學證明（逐步，ε–N）
+
+核心想法：把除法化為乘以倒數，並先證明倒數收斂。
+
+1. 由 \(y_n \to b\) 且 \(b \neq 0\)，取
+   \[
+   \delta := \min\!\left(\frac{|b|}{2}, \frac{\varepsilon |b|^2}{2}\right) > 0.
+   \]
+2. 收斂定義給出 \(N\) 使 \(n \ge N \Rightarrow |y_n - b| < \delta\)。
+3. 因 \(|y_n - b| < |b|/2\)，可得 \(|y_n| \ge |b|/2 > 0\)，因此 \(y_n \neq 0\) 且分母界在 \(|b|/2\) 以上。
+4. 使用恆等式
+   \[
+   \left|\frac{1}{y_n}-\frac{1}{b}\right|
+   = \frac{|y_n-b|}{|y_n|\,|b|}.
+   \]
+   分子由第 2 步得 \(< \varepsilon |b|^2 / 2\)，分母由第 3 步得 \(\ge |b|^2/2\)，因此
+   \[
+   \left|\frac{1}{y_n}-\frac{1}{b}\right| < \varepsilon.
+   \]
+   這證明 \((y_n)^{-1} \to b^{-1}\)。
+5. 已知 \(x_n \to a\) 且 \((y_n)^{-1} \to b^{-1}\)，由定理 2.12(iii)（乘法極限）得
+   \[
+   x_n (y_n)^{-1} \to a \cdot b^{-1}.
+   \]
+   由 \(a \cdot b^{-1} = a/b\) 及 \(x_n (y_n)^{-1} = x_n / y_n\) 即得結論。
+
+### Lean 證明（行尾註解風格）
+
+```lean
+theorem Theorem_2_12_iv (x y : ℕ → ℝ) (a b : ℝ)
+   (hx : converge_to x a) (hy : converge_to y b)
+   (hy_ne : ∀ n : ℕ, y n ≠ 0) (hb : b ≠ 0) :
+   converge_to (fun n => x n / y n) (a / b) := by
+   have hdiv : (fun n => x n / y n) = (fun n => x n * (y n)⁻¹) := by  -- x/y = x * y⁻¹
+      funext n; simp [div_eq_mul_inv]
+   have hy_inv : converge_to (fun n => (y n)⁻¹) (b⁻¹) := by  -- (yₙ)⁻¹ → b⁻¹
+      unfold converge_to
+      intro ε hε
+      have hbpos : 0 < |b| := abs_pos.mpr hb
+      let δ : ℝ := min (|b| / 2) (ε * |b| * |b| / 2)  -- δ = min(|b|/2, ε|b|²/2)
+      have hδpos : 0 < δ := by
+         have hb2 : 0 < |b| / 2 := by have : (0 : ℝ) < 2 := by norm_num; exact div_pos hbpos this
+         have h1 : 0 < ε * |b| := mul_pos hε hbpos
+         have h2 : 0 < ε * |b| * |b| := mul_pos h1 hbpos
+         have h3 : 0 < (ε * |b| * |b|) / 2 := by have : (0 : ℝ) < 2 := by norm_num; exact div_pos h2 this
+         exact lt_min hb2 h3
+      obtain ⟨N, hN⟩ := hy δ hδpos  -- n ≥ N ⇒ |y n - b| < δ
+      refine ⟨N, ?_⟩
+      intro n hn
+      have hyb : |y n - b| < δ := hN n hn
+      have hδ_le : δ ≤ |b| / 2 := by simpa [δ] using min_le_left (|b| / 2) (ε * |b| * |b| / 2)
+      have hδ_le2 : δ ≤ ε * |b| * |b| / 2 := by simpa [δ] using min_le_right (|b| / 2) (ε * |b| * |b| / 2)
+      have hyb1 : |y n - b| < |b| / 2 := lt_of_lt_of_le hyb hδ_le  -- 控制 y_n 接近 b
+      have hb_le : |b| ≤ |y n| + |b - y n| := by  -- 三角不等式
+         have : |b| = |y n + (b - y n)| := by ring
+         simpa [this] using abs_add_le (y n) (b - y n)
+      have hby : |b - y n| = |y n - b| := by simp [abs_sub_comm]
+      have hy_abs_lb : |b| / 2 ≤ |y n| := by  -- 得到 |y n| 的下界
+         have : |b| ≤ |y n| + |y n - b| := by simpa [hby] using hb_le
+         linarith
+      have hypos : 0 < |y n| := lt_of_lt_of_le (by linarith [hbpos]) hy_abs_lb  -- |y n| > 0
+      have hdiff : (y n)⁻¹ - b⁻¹ = (b - y n) / (y n * b) := by  -- 倒數差恆等式
+         field_simp [hy_ne n, hb]
+      have habs : |(y n)⁻¹ - b⁻¹| = |y n - b| / (|y n| * |b|) := by  -- 取絕對值化簡
+         have habs1 : |(y n)⁻¹ - b⁻¹| = |b - y n| / |y n * b| := by
+            calc
+              |(y n)⁻¹ - b⁻¹| = |(b - y n) / (y n * b)| := by simp [hdiff]
+              _ = |b - y n| / |y n * b| := by simp [abs_div]
+         have habs2 : |b - y n| = |y n - b| := by simp [abs_sub_comm]
+         have habs3 : |y n * b| = |y n| * |b| := by simp [abs_mul]
+         simp [habs1, habs2, habs3]
+      have hdenpos : 0 < |y n| * |b| := mul_pos hypos hbpos  -- 分母正
+      have hden_lb : (|b| * |b|) / 2 ≤ |y n| * |b| := by  -- 分母下界
+         have : |b| / 2 ≤ |y n| := hy_abs_lb
+         have hb0 : 0 ≤ |b| := abs_nonneg b
+         have h1 : (|b| / 2) * |b| ≤ |y n| * |b| := mul_le_mul_of_nonneg_right this hb0
+         have h2 : (|b| / 2) * |b| = (|b| * |b|) / 2 := by ring
+         simpa [h2] using h1
+      have hnum : |y n - b| < ε * |b| * |b| / 2 := lt_of_lt_of_le hyb hδ_le2
+      have hden : ε * (|b| * |b| / 2) ≤ ε * (|y n| * |b|) := by
+         have hε0 : 0 ≤ ε := le_of_lt hε
+         exact mul_le_mul_of_nonneg_left hden_lb hε0
+      have hlt : |y n - b| < ε * (|y n| * |b|) := by  -- 分子 < ε * 分母
+         have : ε * |b| * |b| / 2 = ε * ((|b| * |b|) / 2) := by ring
+         exact lt_of_lt_of_le (by simpa [this] using hnum) hden
+      have : |y n - b| / (|y n| * |b|) < ε := by  -- 兩邊同除以正數
+         have h1 :
+             |y n - b| / (|y n| * |b|) <
+               (ε * (|y n| * |b|)) / (|y n| * |b|) :=
+           (div_lt_div_of_pos_right (a := |y n - b|) (b := ε * (|y n| * |b|)) (c := |y n| * |b|) hlt) hdenpos
+         have h2 : (ε * (|y n| * |b|)) / (|y n| * |b|) = ε := by
+            field_simp [ne_of_gt hdenpos]
+         simpa [h2] using h1
+      simpa [habs] using this  -- 得 |(y n)⁻¹ - b⁻¹| < ε
+   have hmul : converge_to (fun n => x n * (y n)⁻¹) (a * b⁻¹) :=  -- 合併極限：xₙ → a, (yₙ)⁻¹ → b⁻¹
+      Theorem_2_12_iii x (fun n => (y n)⁻¹) a (b⁻¹) hx hy_inv
+   simpa [hdiv, div_eq_mul_inv] using hmul  -- 換回除法形式
+```
+
+### Lean 手法拆解（更細）
+
+- **除法轉乘法**：先證 `x/y = x * y⁻¹` 與 `a/b = a * b⁻¹`，把問題化為乘法極限。
+- **倒數收斂的 δ 選擇**：`δ = min(|b|/2, ε|b|^2/2)`，同時確保分母離 0 不遠且誤差最終 < ε。
+- **分母下界**：由 \(|y_n-b|<|b|/2\) 得 \(|y_n| ≥ |b|/2\)，進而 \(|y_n|\,|b| ≥ |b|^2/2\)。
+- **倒數差恆等式**：`(y n)⁻¹ - b⁻¹ = (b - y n)/(y n * b)`，再取絕對值成 \(|y_n-b|/(|y_n||b|)\)。
+- **最後估計**：分子用 δ 的第二分支，分母用下界；`div_lt_div_of_pos_right` 把「分子 < ε·分母」轉成「商 < ε」。
+- **收尾**：用定理 2.12(iii) 合併乘法極限，再 `simpa [div_eq_mul_inv]` 還原除法。
+
 ## 後續練習題
 
 （此處將添加更多第一章的練習題）
